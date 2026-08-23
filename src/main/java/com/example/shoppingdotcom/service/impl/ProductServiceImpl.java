@@ -4,7 +4,7 @@ import com.example.shoppingdotcom.model.Category;
 import com.example.shoppingdotcom.model.Product;
 import com.example.shoppingdotcom.repository.CategoryRepository;
 import com.example.shoppingdotcom.repository.ProductRepository;
-import com.example.shoppingdotcom.service.FileUploadService;
+import com.example.shoppingdotcom.service.NeonStorageService;
 import com.example.shoppingdotcom.service.ProductService;
 import com.example.shoppingdotcom.util.AppConstants;
 import org.springframework.beans.factory.annotation.Autowired;
@@ -36,7 +36,7 @@ public class ProductServiceImpl implements ProductService {
     private CategoryRepository categoryRepository;
 
     @Autowired
-    private FileUploadService fileUploadService;
+    private NeonStorageService neonStorageService;
 
     @Override
     public Product saveProduct(Product product) {
@@ -98,7 +98,7 @@ public class ProductServiceImpl implements ProductService {
             if (!image.isEmpty()) {
 
                 try {
-                    String imageUploadUrl = fileUploadService.uploadFile(image);
+                    String imageUploadUrl = neonStorageService.uploadFile("products", image);
                     updatedProduct.setImage(imageUploadUrl);
                     productRepository.save(updatedProduct);
                 } catch (Exception e) {

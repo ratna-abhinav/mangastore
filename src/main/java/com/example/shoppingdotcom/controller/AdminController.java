@@ -58,7 +58,7 @@ public class AdminController {
     private PasswordEncoder passwordEncoder;
 
     @Autowired
-    private FileUploadService fileUploadService;
+    private NeonStorageService neonStorageService;
 
     @ModelAttribute
     public void getUserDetails(Principal p, Model m) {
@@ -119,7 +119,7 @@ public class AdminController {
                 session.setAttribute("errorMsg", "Category not saved! Internal server error");
             } else {
                 try {
-                    String imageUploadUrl = fileUploadService.uploadFile(file);
+                    String imageUploadUrl = neonStorageService.uploadFile("categories", file);
                     updatedCategory.setImageName(imageUploadUrl);
                     categoryService.saveCategory(updatedCategory);
                     session.setAttribute("succMsg", "Category saved successfully");
@@ -175,7 +175,7 @@ public class AdminController {
         if (!ObjectUtils.isEmpty(updatedCategory)) {
             if (!file.isEmpty()) {
                 try {
-                    String imageUploadUrl = fileUploadService.uploadFile(file);
+                    String imageUploadUrl = neonStorageService.uploadFile("categories", file);
                     updatedCategory.setImageName(imageUploadUrl);
                     categoryService.saveCategory(updatedCategory);
                     session.setAttribute("succMsg", "Category updated successfully !!");
@@ -212,7 +212,7 @@ public class AdminController {
         Product updatedProduct = productService.saveProduct(product);
         if (!ObjectUtils.isEmpty(updatedProduct)) {
             try {
-                String imageUploadUrl = fileUploadService.uploadFile(image);
+                String imageUploadUrl = neonStorageService.uploadFile("products", image);
                 updatedProduct.setImage(imageUploadUrl);
                 productService.saveProduct(updatedProduct);
                 session.setAttribute("succMsg", "Product added successfully !!");
@@ -396,7 +396,7 @@ public class AdminController {
             if (!file.isEmpty()) {
 
                 try {
-                    String imageUploadUrl = fileUploadService.uploadFile(file);
+                    String imageUploadUrl = neonStorageService.uploadFile("profiles", file);
                     updatedAdmin.setProfileImage(imageUploadUrl);
                     userService.saveAdmin(updatedAdmin);
                     session.setAttribute("succMsg", "Admin registered successfully !!");

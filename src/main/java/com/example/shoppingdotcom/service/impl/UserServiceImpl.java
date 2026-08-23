@@ -2,7 +2,7 @@ package com.example.shoppingdotcom.service.impl;
 
 import com.example.shoppingdotcom.model.Users;
 import com.example.shoppingdotcom.repository.UserRepository;
-import com.example.shoppingdotcom.service.FileUploadService;
+import com.example.shoppingdotcom.service.NeonStorageService;
 import com.example.shoppingdotcom.service.UserService;
 import com.example.shoppingdotcom.util.AppConstants;
 import org.springframework.beans.factory.annotation.Autowired;
@@ -32,7 +32,7 @@ public class UserServiceImpl implements UserService {
     private PasswordEncoder passwordEncoder;
 
     @Autowired
-    private FileUploadService fileUploadService;
+    private NeonStorageService neonStorageService;
 
     @Override
     public Users saveUser(Users user) {
@@ -141,7 +141,7 @@ public class UserServiceImpl implements UserService {
 
         if (!img.isEmpty()) {
             try {
-                String imageUploadUrl = fileUploadService.uploadFile(img);
+                String imageUploadUrl = neonStorageService.uploadFile("profiles", img);
                 curUser.setProfileImage(imageUploadUrl);
                 userRepository.save(curUser);
             } catch (IOException e) {
