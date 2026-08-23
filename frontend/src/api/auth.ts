@@ -14,7 +14,12 @@ export function fetchCurrentUser(): Promise<CurrentUser> {
 }
 
 export async function logout(): Promise<void> {
-  await fetch('/logout', { method: 'POST', credentials: 'include' });
+  await fetch('/logout', {
+    method: 'POST',
+    credentials: 'include',
+    headers: { Accept: 'application/json' },
+    redirect: 'manual',
+  });
 }
 
 export const isAdmin = (user: CurrentUser | null): boolean => user?.role === 'ROLE_ADMIN';
