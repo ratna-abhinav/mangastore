@@ -9,6 +9,10 @@ target/
 *.log
 src/main/resources/firebase-service-conf.json
 
+### Frontend ###
+frontend/node_modules/
+frontend/dist/
+
 ### STS ###
 .apt_generated
 .classpath
