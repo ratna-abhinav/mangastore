@@ -13,24 +13,33 @@ export default function Cart() {
   const [pendingIds, setPendingIds] = useState<number[]>([]);
   const cart = useQuery({ queryKey: ['cart'], queryFn: fetchCart, placeholderData: keepPreviousData });
 
-  const mutate = async (id: number, fn: () => Promise<void>, successMsg?: string) => {
+  const mutate = async (
+    id: number,
+    fn: () => Promise<void>,
+    opts?: { successMsg?: string; errorMsg?: string },
+  ) => {
     if (pendingIds.includes(id)) return;
     setPendingIds((prev) => [...prev, id]);
     try {
       await fn();
       await refresh();
+      if (opts?.successMsg) toast('info', opts.successMsg);
+    } catch {
+      toast('error', opts?.errorMsg ?? 'Something went wrong. Please try again.');
+    } finally {
       void queryClient.invalidateQueries({ queryKey: ['cart'] });
       void queryClient.invalidateQueries({ queryKey: ['checkout'] });
-      if (successMsg) toast('info', successMsg);
-    } catch {
-      toast('error', 'Cannot add more !!');
-    } finally {
       setPendingIds((prev) => prev.filter((x) => x !== id));
     }
   };
 
-  const changeQty = (id: number, action: 'in' | 'de') => mutate(id, () => updateCartItem(id, action));
-  const remove = (id: number) => mutate(id, () => removeCartItem(id), 'Item removed from cart');
+  const changeQty = (id: number, action: 'in' | 'de') =>
+    mutate(id, () => updateCartItem(id, action), { errorMsg: 'Cannot add more !!' });
+  const remove = (id: number) =>
+    mutate(id, () => removeCartItem(id), {
+      successMsg: 'Item removed from cart',
+      errorMsg: 'Failed to remove item',
+    });
 
   if (cart.isLoading) return <p className="py-16 text-center text-slate-500">Loading cart…</p>;
 

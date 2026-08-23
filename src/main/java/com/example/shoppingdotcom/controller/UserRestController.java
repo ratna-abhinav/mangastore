@@ -104,9 +104,7 @@ public class UserRestController {
         if (!ownsCartItem(cartItemId, principal)) {
             return notFound("Cart item not found");
         }
-        while (cartService.updateQuantity("de", cartItemId)) {
-            // decrements until the row is deleted at quantity 0
-        }
+        cartService.removeFromCart(cartItemId);
         return ResponseEntity.ok(Map.of("success", true));
     }
 

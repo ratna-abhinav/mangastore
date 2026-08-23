@@ -18,4 +18,6 @@ public interface CartService {
     public Boolean updateQuantity(String sy, Integer cid);
 
     CartItem getCurrentQuantity(Integer productId, Integer userId);
+
+    void removeFromCart(Integer cartItemId);
 }

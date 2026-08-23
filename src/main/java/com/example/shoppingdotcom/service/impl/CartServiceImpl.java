@@ -114,4 +114,9 @@ public class CartServiceImpl implements CartService {
     public CartItem getCurrentQuantity(Integer productId, Integer userId) {
         return cartRepository.findByProductIdAndUserId(productId, userId);
     }
+
+    @Override
+    public void removeFromCart(Integer cartItemId) {
+        cartRepository.findById(cartItemId).ifPresent(cartRepository::delete);
+    }
 }
