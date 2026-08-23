@@ -10,16 +10,21 @@ export default function Cart() {
   const toast = useToast();
   const { refresh } = useAuth();
   const queryClient = useQueryClient();
-  const [pendingIds, setPendingIds] = useState<number[]>([]);
+  type PendingKind = 'in' | 'de' | 'remove';
+  const [pending, setPending] = useState<{ id: number; kind: PendingKind }[]>([]);
   const cart = useQuery({ queryKey: ['cart'], queryFn: fetchCart, placeholderData: keepPreviousData });
+
+  const isPending = (id: number) => pending.some((p) => p.id === id);
+  const pendingKind = (id: number, kind: PendingKind) => pending.some((p) => p.id === id && p.kind === kind);
 
   const mutate = async (
     id: number,
+    kind: PendingKind,
     fn: () => Promise<void>,
     opts?: { successMsg?: string; errorMsg?: string },
   ) => {
-    if (pendingIds.includes(id)) return;
-    setPendingIds((prev) => [...prev, id]);
+    if (isPending(id)) return;
+    setPending((prev) => [...prev, { id, kind }]);
     try {
       await fn();
       await refresh();
@@ -29,14 +34,14 @@ export default function Cart() {
     } finally {
       void queryClient.invalidateQueries({ queryKey: ['cart'] });
       void queryClient.invalidateQueries({ queryKey: ['checkout'] });
-      setPendingIds((prev) => prev.filter((x) => x !== id));
+      setPending((prev) => prev.filter((p) => p.id !== id));
     }
   };
 
   const changeQty = (id: number, action: 'in' | 'de') =>
-    mutate(id, () => updateCartItem(id, action), { errorMsg: 'Cannot add more !!' });
+    mutate(id, action, () => updateCartItem(id, action), { errorMsg: 'Cannot add more !!' });
   const remove = (id: number) =>
-    mutate(id, () => removeCartItem(id), {
+    mutate(id, 'remove', () => removeCartItem(id), {
       successMsg: 'Item removed from cart',
       errorMsg: 'Failed to remove item',
     });
@@ -72,7 +77,7 @@ export default function Cart() {
                 <div className="flex items-center gap-3">
                   <button
                     onClick={() => changeQty(item.id, 'de')}
-                    disabled={pendingIds.includes(item.id)}
+                    disabled={isPending(item.id)}
                     className="h-8 w-8 rounded-full border border-slate-300 text-slate-600 hover:border-emerald-500 disabled:opacity-40"
                   >
                     −
@@ -80,7 +85,7 @@ export default function Cart() {
                   <span className="w-6 text-center font-semibold">{item.quantity}</span>
                   <button
                     onClick={() => changeQty(item.id, 'in')}
-                    disabled={pendingIds.includes(item.id) || item.quantity >= item.stock}
+                    disabled={isPending(item.id) || item.quantity >= item.stock}
                     title={item.quantity >= item.stock ? 'No more stock' : undefined}
                     className="h-8 w-8 rounded-full border border-slate-300 text-slate-600 hover:border-emerald-500 disabled:opacity-40"
                   >
@@ -90,10 +95,10 @@ export default function Cart() {
                 </div>
                 <button
                   onClick={() => remove(item.id)}
-                  disabled={pendingIds.includes(item.id)}
+                  disabled={isPending(item.id)}
                   className="text-sm text-red-400 hover:text-red-600 disabled:opacity-40"
                 >
-                  {pendingIds.includes(item.id) ? 'Removing…' : 'Remove'}
+                  {pendingKind(item.id, 'remove') ? 'Removing…' : 'Remove'}
                 </button>
               </div>
             </div>
