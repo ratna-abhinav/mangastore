@@ -26,6 +26,8 @@ import java.util.Map;
 @RestController
 public class CatalogRestController {
 
+    private static final int HOME_PRODUCT_LIMIT = 8;
+
     @Autowired
     private CategoryService categoryService;
 
@@ -45,14 +47,15 @@ public class CatalogRestController {
                 .sorted(Comparator.comparing(Category::getId))
                 .map(CategoryDto::from)
                 .toList();
-        List<ProductDto> products = productService.getAllActiveProducts("").stream()
-                .sorted(Comparator.comparing(Product::getId))
+        List<ProductDto> newArrivals = productService.getAllActiveProducts("").stream()
+                .sorted(Comparator.comparing(Product::getId).reversed())
+                .limit(HOME_PRODUCT_LIMIT)
                 .map(ProductDto::from)
                 .toList();
 
         Map<String, Object> body = new LinkedHashMap<>();
         body.put("categories", categories);
-        body.put("products", products);
+        body.put("products", newArrivals);
         return ResponseEntity.ok(body);
     }
 
