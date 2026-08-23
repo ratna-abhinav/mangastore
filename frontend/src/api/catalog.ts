@@ -10,12 +10,14 @@ export interface Product {
   image: string;
   discount: number;
   discountedPrice: number | null;
+  isActive?: number;
 }
 
 export interface Category {
   id: number;
   name: string;
   imageName: string;
+  isActive?: number;
 }
 
 export interface PagedProducts {

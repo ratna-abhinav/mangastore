@@ -49,9 +49,10 @@ public class SecurityConfig {
     @Bean
     public SecurityFilterChain filterChain(HttpSecurity http) throws Exception {
         http.csrf(AbstractHttpConfigurer::disable).cors(AbstractHttpConfigurer::disable)
-                .authorizeHttpRequests(req -> req.requestMatchers("/users/**").hasRole("USER")
-                        .requestMatchers("/admin/**").hasRole("ADMIN")
-                        .requestMatchers("/api/users/**").hasRole("USER")
+                .authorizeHttpRequests(req -> req
+                        // page shells are public; React guards them client-side.
+                        // real protection lives on the data endpoints below.
+                        .requestMatchers("/api/users/**").hasAnyRole("USER", "ADMIN")
                         .requestMatchers("/api/admin/**").hasRole("ADMIN")
                         .requestMatchers("/**").permitAll())
                 .exceptionHandling(ex -> ex.defaultAuthenticationEntryPointFor(

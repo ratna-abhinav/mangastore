@@ -11,10 +11,11 @@ public record ProductDto(
         int stock,
         String image,
         int discount,
-        Double discountedPrice) {
+        Double discountedPrice,
+        Integer isActive) {
 
     public static ProductDto from(Product p) {
         return new ProductDto(p.getId(), p.getTitle(), p.getDescription(), p.getCategory(),
-                p.getPrice(), p.getStock(), p.getImage(), p.getDiscount(), p.getDiscountedPrice());
+                p.getPrice(), p.getStock(), p.getImage(), p.getDiscount(), p.getDiscountedPrice(), p.getIsActive());
     }
 }

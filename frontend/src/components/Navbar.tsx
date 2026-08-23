@@ -25,9 +25,14 @@ export default function Navbar() {
           ) : user ? (
             <div className="flex items-center gap-3">
               {isAdmin(user) && (
-                <a href="/admin/" className="rounded-md border border-slate-300 px-2 py-1 hover:border-emerald-500">
-                  Admin
-                </a>
+                <>
+                  <Link to="/admin" className="rounded-md border border-emerald-500 px-2 py-1 font-medium text-emerald-600 hover:bg-emerald-50">
+                    Admin
+                  </Link>
+                  <Link to="/admin/orders" className="hover:text-emerald-600">
+                    Manage Orders
+                  </Link>
+                </>
               )}
               <Link to="/my-orders" className="hover:text-emerald-600">
                 Orders
