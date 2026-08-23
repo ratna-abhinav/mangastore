@@ -13,6 +13,9 @@ src/main/resources/firebase-service-conf.json
 frontend/node_modules/
 frontend/dist/
 
+### Local run artifacts ###
+logs/
+
 ### STS ###
 .apt_generated
 .classpath
