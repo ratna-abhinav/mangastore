@@ -10,12 +10,12 @@ export default function Cart() {
   const toast = useToast();
   const { refresh } = useAuth();
   const queryClient = useQueryClient();
-  const [pendingId, setPendingId] = useState<number | null>(null);
+  const [pendingIds, setPendingIds] = useState<number[]>([]);
   const cart = useQuery({ queryKey: ['cart'], queryFn: fetchCart, placeholderData: keepPreviousData });
 
   const mutate = async (id: number, fn: () => Promise<void>, successMsg?: string) => {
-    if (pendingId !== null) return;
-    setPendingId(id);
+    if (pendingIds.includes(id)) return;
+    setPendingIds((prev) => [...prev, id]);
     try {
       await fn();
       await refresh();
@@ -25,7 +25,7 @@ export default function Cart() {
     } catch {
       toast('error', 'Cannot add more !!');
     } finally {
-      setPendingId(null);
+      setPendingIds((prev) => prev.filter((x) => x !== id));
     }
   };
 
@@ -63,7 +63,7 @@ export default function Cart() {
                 <div className="flex items-center gap-3">
                   <button
                     onClick={() => changeQty(item.id, 'de')}
-                    disabled={pendingId === item.id}
+                    disabled={pendingIds.includes(item.id)}
                     className="h-8 w-8 rounded-full border border-slate-300 text-slate-600 hover:border-emerald-500 disabled:opacity-40"
                   >
                     −
@@ -71,7 +71,7 @@ export default function Cart() {
                   <span className="w-6 text-center font-semibold">{item.quantity}</span>
                   <button
                     onClick={() => changeQty(item.id, 'in')}
-                    disabled={pendingId === item.id || item.quantity >= item.stock}
+                    disabled={pendingIds.includes(item.id) || item.quantity >= item.stock}
                     title={item.quantity >= item.stock ? 'No more stock' : undefined}
                     className="h-8 w-8 rounded-full border border-slate-300 text-slate-600 hover:border-emerald-500 disabled:opacity-40"
                   >
@@ -81,10 +81,10 @@ export default function Cart() {
                 </div>
                 <button
                   onClick={() => remove(item.id)}
-                  disabled={pendingId === item.id}
+                  disabled={pendingIds.includes(item.id)}
                   className="text-sm text-red-400 hover:text-red-600 disabled:opacity-40"
                 >
-                  {pendingId === item.id ? 'Removing…' : 'Remove'}
+                  {pendingIds.includes(item.id) ? 'Removing…' : 'Remove'}
                 </button>
               </div>
             </div>

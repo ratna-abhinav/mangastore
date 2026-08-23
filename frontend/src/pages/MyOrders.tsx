@@ -18,12 +18,12 @@ const statusStyles: Record<string, string> = {
 export default function MyOrders() {
   const toast = useToast();
   const queryClient = useQueryClient();
-  const [cancellingId, setCancellingId] = useState<number | null>(null);
+  const [cancellingIds, setCancellingIds] = useState<number[]>([]);
   const orders = useQuery({ queryKey: ['my-orders'], queryFn: fetchMyOrders });
 
   const cancel = async (id: number) => {
-    if (cancellingId !== null) return;
-    setCancellingId(id);
+    if (cancellingIds.includes(id)) return;
+    setCancellingIds((prev) => [...prev, id]);
     try {
       await cancelOrder(id);
       toast('info', 'Order cancelled !!');
@@ -31,7 +31,7 @@ export default function MyOrders() {
     } catch {
       toast('error', 'Failed to cancel order');
     } finally {
-      setCancellingId(null);
+      setCancellingIds((prev) => prev.filter((x) => x !== id));
     }
   };
 
@@ -74,10 +74,10 @@ export default function MyOrders() {
             {(o.status === 'In Progress' || o.status === 'Order Received') && (
               <button
                 onClick={() => void cancel(o.id)}
-                disabled={cancellingId !== null}
+                disabled={cancellingIds.includes(o.id)}
                 className="text-xs text-red-400 hover:text-red-600 disabled:opacity-40"
               >
-                {cancellingId === o.id ? 'Cancelling…' : 'Cancel order'}
+                {cancellingIds.includes(o.id) ? 'Cancelling…' : 'Cancel order'}
               </button>
             )}
           </div>
