@@ -1,6 +1,7 @@
 import { Navigate, Route, Routes } from 'react-router-dom';
 import Layout from './components/Layout';
 import RequireAuth from './components/RequireAuth';
+import AdminRoute from './components/AdminRoute';
 import HomePlaceholder from './pages/HomePlaceholder';
 import StoreHome from './pages/StoreHome';
 import Products from './pages/Products';
@@ -13,6 +14,13 @@ import Cart from './pages/Cart';
 import Checkout from './pages/Checkout';
 import MyOrders from './pages/MyOrders';
 import Profile from './pages/Profile';
+import Dashboard from './pages/admin/Dashboard';
+import AdminProducts from './pages/admin/AdminProducts';
+import ProductForm from './pages/admin/ProductForm';
+import AdminCategories from './pages/admin/AdminCategories';
+import AdminOrders from './pages/admin/AdminOrders';
+import AdminUsers from './pages/admin/AdminUsers';
+import AddAdmin from './pages/admin/AddAdmin';
 
 export default function App() {
   return (
@@ -37,6 +45,17 @@ export default function App() {
           <Route path="/users/success" element={<Navigate to="/my-orders" replace />} />
           <Route path="/users/user-orders" element={<Navigate to="/my-orders" replace />} />
           <Route path="/users/profile" element={<Navigate to="/profile" replace />} />
+        </Route>
+
+        <Route element={<AdminRoute />}>
+          <Route path="/admin" element={<Dashboard />} />
+          <Route path="/admin/products" element={<AdminProducts />} />
+          <Route path="/admin/add-product" element={<ProductForm />} />
+          <Route path="/admin/edit-product/:id" element={<ProductForm />} />
+          <Route path="/admin/categories" element={<AdminCategories />} />
+          <Route path="/admin/orders" element={<AdminOrders />} />
+          <Route path="/admin/users" element={<AdminUsers />} />
+          <Route path="/admin/add-admin" element={<AddAdmin />} />
         </Route>
 
         <Route path="*" element={<HomePlaceholder />} />
