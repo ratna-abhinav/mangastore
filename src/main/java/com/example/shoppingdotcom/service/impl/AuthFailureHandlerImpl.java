@@ -8,6 +8,7 @@ import jakarta.servlet.ServletException;
 import jakarta.servlet.http.HttpServletRequest;
 import jakarta.servlet.http.HttpServletResponse;
 import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.http.MediaType;
 import org.springframework.security.authentication.LockedException;
 import org.springframework.security.core.AuthenticationException;
 import org.springframework.security.web.authentication.SimpleUrlAuthenticationFailureHandler;
@@ -54,6 +55,15 @@ public class AuthFailureHandlerImpl extends SimpleUrlAuthenticationFailureHandle
                 exception = new LockedException("Your account is Inactive!");
             }
         }
+        String accept = request.getHeader("Accept");
+        if (accept != null && accept.contains("application/json")) {
+            response.setStatus(HttpServletResponse.SC_UNAUTHORIZED);
+            response.setContentType(MediaType.APPLICATION_JSON_VALUE);
+            String msg = exception.getMessage() == null ? "Invalid email or password" : exception.getMessage();
+            response.getWriter().write("{\"error\":\"" + msg.replace("\"", "'") + "\"}");
+            return;
+        }
+
         super.setDefaultFailureUrl("/signin?error");
         super.onAuthenticationFailure(request, response, exception);
     }

@@ -3,6 +3,7 @@ package com.example.shoppingdotcom.service.impl;
 import jakarta.servlet.ServletException;
 import jakarta.servlet.http.HttpServletRequest;
 import jakarta.servlet.http.HttpServletResponse;
+import org.springframework.http.MediaType;
 import org.springframework.security.core.Authentication;
 import org.springframework.security.core.GrantedAuthority;
 import org.springframework.security.core.authority.AuthorityUtils;
@@ -22,6 +23,15 @@ public class AuthSuccessHandlerImpl implements AuthenticationSuccessHandler {
 
         Collection<? extends GrantedAuthority> authorities = authentication.getAuthorities();
         Set<String> roles = AuthorityUtils.authorityListToSet(authorities);
+
+        String accept = request.getHeader("Accept");
+        if (accept != null && accept.contains("application/json")) {
+            String role = roles.contains("ROLE_ADMIN") ? "ROLE_ADMIN" : "ROLE_USER";
+            response.setStatus(HttpServletResponse.SC_OK);
+            response.setContentType(MediaType.APPLICATION_JSON_VALUE);
+            response.getWriter().write("{\"ok\":true,\"role\":\"" + role + "\"}");
+            return;
+        }
 
         if(roles.contains("ROLE_ADMIN")) {
             response.sendRedirect("/admin/");

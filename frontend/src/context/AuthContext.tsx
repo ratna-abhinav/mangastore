@@ -1,11 +1,12 @@
 import { createContext, useCallback, useContext, useEffect, useMemo, useState } from 'react';
 import { useQueryClient } from '@tanstack/react-query';
-import { fetchCurrentUser, logout as apiLogout, type CurrentUser } from '../api/auth';
+import { fetchCurrentUser, login as apiLogin, logout as apiLogout, type CurrentUser } from '../api/auth';
 
 interface AuthContextValue {
   user: CurrentUser | null;
   loading: boolean;
   refresh: () => Promise<void>;
+  login: (email: string, password: string) => Promise<CurrentUser | null>;
   logout: () => Promise<void>;
 }
 
@@ -27,6 +28,17 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
     }
   }, []);
 
+  const login = useCallback(
+    async (email: string, password: string) => {
+      await apiLogin(email, password);
+      const me = await fetchCurrentUser().catch(() => null);
+      setUser(me);
+      setLoading(false);
+      return me;
+    },
+    [],
+  );
+
   const logout = useCallback(async () => {
     try {
       await apiLogout();
@@ -40,7 +52,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
     void refresh();
   }, [refresh]);
 
-  const value = useMemo(() => ({ user, loading, refresh, logout }), [user, loading, refresh, logout]);
+  const value = useMemo(() => ({ user, loading, refresh, login, logout }), [user, loading, refresh, login, logout]);
 
   return <AuthContext.Provider value={value}>{children}</AuthContext.Provider>;
 }
