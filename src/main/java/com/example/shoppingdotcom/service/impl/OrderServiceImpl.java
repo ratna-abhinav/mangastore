@@ -67,6 +67,9 @@ public class OrderServiceImpl implements OrderService {
         Optional<ProductOrder> curProductOrder = orderRepository.findById(orderId);
         if (curProductOrder.isPresent()) {
             ProductOrder updatedProductOrder = curProductOrder.get();
+            if (Objects.equals(updatedProductOrder.getStatus(), status)) {
+                return updatedProductOrder;
+            }
             updatedProductOrder.setStatus(status);
             if (Objects.equals(status, OrderStatus.CANCELLED.getName())) {
                 Product product = curProductOrder.get().getProduct();

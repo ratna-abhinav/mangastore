@@ -148,13 +148,25 @@ public class UserRestController {
         return ResponseEntity.ok(body);
     }
 
+    private static final List<String> CANCELLABLE_STATUSES = List.of(
+            OrderStatus.IN_PROGRESS.getName(), OrderStatus.ORDER_RECEIVED.getName());
+
     @PostMapping("/orders/{id}/cancel")
     public ResponseEntity<Map<String, Object>> cancelOrder(@PathVariable Integer id, Principal principal) {
         Users me = currentUser(principal);
-        boolean mine = orderService.getOrdersByUser(me.getId()).stream()
-                .anyMatch(o -> o.getId().equals(id));
-        if (!mine) {
+        ProductOrder target = orderService.getOrdersByUser(me.getId()).stream()
+                .filter(o -> o.getId().equals(id))
+                .findFirst()
+                .orElse(null);
+        if (target == null) {
             return notFound("Order not found");
+        }
+        if (OrderStatus.CANCELLED.getName().equals(target.getStatus())) {
+            return ResponseEntity.status(HttpStatus.CONFLICT).body(Map.of("error", "Order is already cancelled !!"));
+        }
+        if (!CANCELLABLE_STATUSES.contains(target.getStatus())) {
+            return ResponseEntity.status(HttpStatus.CONFLICT)
+                    .body(Map.of("error", "This order can no longer be cancelled !!"));
         }
         ProductOrder order = orderService.updateOrderStatus(id, OrderStatus.CANCELLED.getName());
         try {
