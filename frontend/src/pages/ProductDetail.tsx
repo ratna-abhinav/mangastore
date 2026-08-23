@@ -1,17 +1,39 @@
 import { Link, useParams } from 'react-router-dom';
-import { useQuery } from '@tanstack/react-query';
+import { useQuery, useQueryClient } from '@tanstack/react-query';
+import { addToCart } from '../api/userArea';
 import { fetchProduct } from '../api/catalog';
 import { inr } from '../utils/format';
 import { useToast } from '../components/Toast';
+import { useAuth } from '../context/AuthContext';
 
 export default function ProductDetail() {
   const { id } = useParams();
   const toast = useToast();
+  const queryClient = useQueryClient();
+  const { user } = useAuth();
   const { data: product, isLoading, isError } = useQuery({
     queryKey: ['product', id],
     queryFn: () => fetchProduct(id!),
     retry: false,
   });
+
+  const add = async () => {
+    if (!user) {
+      toast('info', 'Please sign in to add items to your cart.');
+      return;
+    }
+    try {
+      const res = await addToCart(product!.id);
+      void queryClient.invalidateQueries({ queryKey: ['auth'] });
+      toast('success', `Added to cart !! (cart: ${res.cartCount})`);
+    } catch (err) {
+      if (err && typeof err === 'object' && 'status' in err && (err as { status: number }).status === 409) {
+        toast('error', 'Cannot add more !!');
+      } else {
+        toast('error', 'Cannot be added !!');
+      }
+    }
+  };
 
   if (isLoading) return <p className="py-20 text-center text-slate-500">Loading product…</p>;
   if (isError || !product)
@@ -64,7 +86,7 @@ export default function ProductDetail() {
         </p>
 
         <button
-          onClick={() => toast('info', 'Cart & checkout arrive in Phase 5 — hang tight!')}
+          onClick={() => void add()}
           disabled={product.stock === 0}
           className="w-full rounded-xl bg-emerald-600 py-3 font-semibold text-white transition hover:bg-emerald-500 disabled:cursor-not-allowed disabled:bg-slate-300 sm:w-64"
         >
