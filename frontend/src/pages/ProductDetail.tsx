@@ -1,17 +1,48 @@
+import { useState } from 'react';
 import { Link, useParams } from 'react-router-dom';
-import { useQuery } from '@tanstack/react-query';
+import { useQuery, useQueryClient } from '@tanstack/react-query';
+import { addToCart } from '../api/userArea';
 import { fetchProduct } from '../api/catalog';
 import { inr } from '../utils/format';
 import { useToast } from '../components/Toast';
+import { useAuth } from '../context/AuthContext';
 
 export default function ProductDetail() {
   const { id } = useParams();
   const toast = useToast();
+  const queryClient = useQueryClient();
+  const { user, refresh } = useAuth();
+  const [adding, setAdding] = useState(false);
   const { data: product, isLoading, isError } = useQuery({
     queryKey: ['product', id],
     queryFn: () => fetchProduct(id!),
     retry: false,
   });
+
+  const add = async () => {
+    if (!user) {
+      toast('info', 'Please sign in to add items to your cart.');
+      return;
+    }
+    if (adding) return;
+    setAdding(true);
+    try {
+      const res = await addToCart(product!.id);
+      await refresh();
+      // anyone already looking at cart/checkout must see the new item
+      void queryClient.invalidateQueries({ queryKey: ['cart'] });
+      void queryClient.invalidateQueries({ queryKey: ['checkout'] });
+      toast('success', `Added to cart !! (cart: ${res.cartCount})`);
+    } catch (err) {
+      if (err && typeof err === 'object' && 'status' in err && (err as { status: number }).status === 409) {
+        toast('error', 'Cannot add more !!');
+      } else {
+        toast('error', 'Cannot be added !!');
+      }
+    } finally {
+      setAdding(false);
+    }
+  };
 
   if (isLoading) return <p className="py-20 text-center text-slate-500">Loading product…</p>;
   if (isError || !product)
@@ -64,11 +95,11 @@ export default function ProductDetail() {
         </p>
 
         <button
-          onClick={() => toast('info', 'Cart & checkout arrive in Phase 5 — hang tight!')}
-          disabled={product.stock === 0}
+          onClick={() => void add()}
+          disabled={product.stock === 0 || adding}
           className="w-full rounded-xl bg-emerald-600 py-3 font-semibold text-white transition hover:bg-emerald-500 disabled:cursor-not-allowed disabled:bg-slate-300 sm:w-64"
         >
-          Add to Cart 🛒
+          {adding ? 'Adding…' : 'Add to Cart 🛒'}
         </button>
 
         <div className="rounded-xl border border-slate-200 bg-white p-5">

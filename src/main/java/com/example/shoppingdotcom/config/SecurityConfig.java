@@ -51,6 +51,8 @@ public class SecurityConfig {
         http.csrf(AbstractHttpConfigurer::disable).cors(AbstractHttpConfigurer::disable)
                 .authorizeHttpRequests(req -> req.requestMatchers("/users/**").hasRole("USER")
                         .requestMatchers("/admin/**").hasRole("ADMIN")
+                        .requestMatchers("/api/users/**").hasRole("USER")
+                        .requestMatchers("/api/admin/**").hasRole("ADMIN")
                         .requestMatchers("/**").permitAll())
                 .exceptionHandling(ex -> ex.defaultAuthenticationEntryPointFor(
                         new ApiAuthenticationEntryPoint(), new AntPathRequestMatcher("/api/**")))

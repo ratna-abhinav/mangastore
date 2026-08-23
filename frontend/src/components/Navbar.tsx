@@ -29,20 +29,27 @@ export default function Navbar() {
                   Admin
                 </a>
               )}
+              <Link to="/my-orders" className="hover:text-emerald-600">
+                Orders
+              </Link>
               <span className="relative" title={`Cart (${user.cartCount})`}>
-                🛒
+                <Link to="/cart" className="text-lg" aria-label="Cart">
+                  🛒
+                </Link>
                 {user.cartCount > 0 && (
                   <span className="absolute -right-2 -top-2 rounded-full bg-emerald-600 px-1.5 text-xs font-semibold text-white">
                     {user.cartCount}
                   </span>
                 )}
               </span>
-              <img
-                src={user.profileImage ?? undefined}
-                alt=""
-                className="h-9 w-9 rounded-full border border-emerald-500 object-cover"
-                referrerPolicy="no-referrer"
-              />
+              <Link to="/profile" aria-label="Profile">
+                <img
+                  src={user.profileImage ?? undefined}
+                  alt=""
+                  className="h-9 w-9 rounded-full border border-emerald-500 object-cover"
+                  referrerPolicy="no-referrer"
+                />
+              </Link>
               <button
                 onClick={() => void logout()}
                 className="rounded-md bg-slate-800 px-3 py-1.5 text-white hover:bg-slate-700"

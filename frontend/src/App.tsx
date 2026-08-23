@@ -1,5 +1,6 @@
-import { Route, Routes } from 'react-router-dom';
+import { Navigate, Route, Routes } from 'react-router-dom';
 import Layout from './components/Layout';
+import RequireAuth from './components/RequireAuth';
 import HomePlaceholder from './pages/HomePlaceholder';
 import StoreHome from './pages/StoreHome';
 import Products from './pages/Products';
@@ -8,6 +9,10 @@ import SignIn from './pages/SignIn';
 import Register from './pages/Register';
 import ForgotPassword from './pages/ForgotPassword';
 import ResetPassword from './pages/ResetPassword';
+import Cart from './pages/Cart';
+import Checkout from './pages/Checkout';
+import MyOrders from './pages/MyOrders';
+import Profile from './pages/Profile';
 
 export default function App() {
   return (
@@ -20,6 +25,20 @@ export default function App() {
         <Route path="/register" element={<Register />} />
         <Route path="/forgot-password" element={<ForgotPassword />} />
         <Route path="/reset-password" element={<ResetPassword />} />
+
+        <Route element={<RequireAuth />}>
+          <Route path="/cart" element={<Cart />} />
+          <Route path="/checkout" element={<Checkout />} />
+          <Route path="/my-orders" element={<MyOrders />} />
+          <Route path="/profile" element={<Profile />} />
+          {/* legacy URLs kept alive for old bookmarks */}
+          <Route path="/users/cart" element={<Navigate to="/cart" replace />} />
+          <Route path="/users/orders" element={<Navigate to="/checkout" replace />} />
+          <Route path="/users/success" element={<Navigate to="/my-orders" replace />} />
+          <Route path="/users/user-orders" element={<Navigate to="/my-orders" replace />} />
+          <Route path="/users/profile" element={<Navigate to="/profile" replace />} />
+        </Route>
+
         <Route path="*" element={<HomePlaceholder />} />
       </Route>
     </Routes>
