@@ -1,6 +1,7 @@
 import { useEffect, useRef, useState } from 'react';
 import { keepPreviousData, useQuery, useQueryClient } from '@tanstack/react-query';
 import { changePassword, fetchProfile, updateProfile } from '../api/userArea';
+import { useAuth } from '../context/AuthContext';
 import { useToast } from '../components/Toast';
 
 const inputCls = 'w-full rounded-lg border border-slate-300 px-3 py-2 text-sm outline-none focus:border-emerald-500';
@@ -8,6 +9,7 @@ const labelCls = 'mb-1 block text-sm font-medium text-slate-700';
 
 export default function Profile() {
   const toast = useToast();
+  const { refresh } = useAuth();
   const queryClient = useQueryClient();
   const profile = useQuery({ queryKey: ['profile'], queryFn: fetchProfile, placeholderData: keepPreviousData });
   const fileRef = useRef<HTMLInputElement>(null);
@@ -48,8 +50,8 @@ export default function Profile() {
       if (img) fd.append('img', img);
 
       await updateProfile(fd);
+      await refresh();
       void queryClient.invalidateQueries({ queryKey: ['profile'] });
-      void queryClient.invalidateQueries({ queryKey: ['auth'] });
       toast('success', 'Profile Updated !!');
     } catch {
       toast('error', 'Profile not updated !! Internal Server Error !!');

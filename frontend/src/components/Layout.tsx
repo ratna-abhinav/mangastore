@@ -9,7 +9,7 @@ export default function Layout() {
         <Outlet />
       </main>
       <footer className="border-t border-slate-200 bg-white py-4 text-center text-xs text-slate-400">
-        MangaStore · UI migration in progress — some pages still served by the classic engine
+        © {new Date().getFullYear()} MangaStore · Manga, manhwa &amp; donghua
       </footer>
     </div>
   );
