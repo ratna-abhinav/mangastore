@@ -1,7 +1,7 @@
 import { useEffect, useState } from 'react';
 import { Link, useNavigate } from 'react-router-dom';
 import { keepPreviousData, useQuery, useQueryClient } from '@tanstack/react-query';
-import { fetchCart, fetchCheckout, placeOrder } from '../api/userArea';
+import { fetchCart, fetchCheckout, fetchProfile, placeOrder } from '../api/userArea';
 import { useAuth } from '../context/AuthContext';
 import { useToast } from '../components/Toast';
 import { inr } from '../utils/format';
@@ -17,6 +17,7 @@ export default function Checkout() {
 
   const cart = useQuery({ queryKey: ['cart'], queryFn: fetchCart, placeholderData: keepPreviousData });
   const checkout = useQuery({ queryKey: ['checkout'], queryFn: fetchCheckout });
+  const profile = useQuery({ queryKey: ['profile'], queryFn: fetchProfile });
 
   const [form, setForm] = useState({
     firstName: '',
@@ -32,15 +33,20 @@ export default function Checkout() {
   const [busy, setBusy] = useState(false);
 
   useEffect(() => {
-    if (user) {
-      setForm((f) => ({
-        ...f,
-        firstName: user.name?.split(' ')[0] ?? '',
-        lastName: user.name?.split(' ').slice(1).join(' ') ?? '',
-        email: user.email,
-      }));
-    }
-  }, [user]);
+    if (!user) return;
+    const p = profile.data;
+    setForm((f) => ({
+      ...f,
+      firstName: p?.name?.split(' ')[0] ?? user.name?.split(' ')[0] ?? '',
+      lastName: p?.name ? (p.name.split(' ').slice(1).join(' ') || f.lastName) : f.lastName,
+      email: user.email,
+      mobileNo: p?.mobileNumber ?? f.mobileNo,
+      address: p?.address ?? f.address,
+      city: p?.city ?? f.city,
+      state: p?.state ?? f.state,
+      pincode: p?.pincode ?? f.pincode,
+    }));
+  }, [user, profile.data]);
 
   if (cart.isSuccess && cart.data.items.length === 0) {
     return (
