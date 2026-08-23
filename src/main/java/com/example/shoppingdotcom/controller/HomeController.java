@@ -75,17 +75,6 @@ public class HomeController {
         return "home";
     }
 
-    @GetMapping("/home")
-    public String index(Model m) {
-        List<Category> allActiveCategory = categoryService.getAllActiveCategory().stream()
-                .sorted(Comparator.comparing(Category::getId)).toList();
-        List<Product> allActiveProducts = productService.getAllActiveProducts("").stream()
-                .sorted(Comparator.comparing(Product::getId)).toList();
-        m.addAttribute("allActiveCategories", allActiveCategory);
-        m.addAttribute("allActiveProducts", allActiveProducts);
-        return "index";
-    }
-
     @GetMapping("/signin")
     public String login(Model m) {
         return "login";
@@ -94,46 +83,6 @@ public class HomeController {
     @GetMapping("/register")
     public String register(Model m) {
         return "register";
-    }
-
-    @GetMapping("/products")
-    public String listAllProducts(Model m, @RequestParam(value = "category", defaultValue = "") String category,
-                                  @RequestParam(name = "pageNo", defaultValue = "0") Integer pageNo,
-                                  @RequestParam(name = "pageSize", defaultValue = "12") Integer pageSize,
-                                  @RequestParam(name = "keyword", defaultValue = "") String keyword) {
-
-        List<Category> categories = categoryService.getAllActiveCategory();
-        m.addAttribute("categories", categories);
-        m.addAttribute("paramValue", category);
-        m.addAttribute("keyword", keyword);
-
-        Page<Product> page = null;
-        if (StringUtils.hasText(keyword)) {
-            page = productService.searchProductPagination(pageNo, pageSize, keyword);
-        } else {
-            page = productService.getAllActiveProductPagination(pageNo, pageSize, category);
-        }
-
-        List<Product> products = page.getContent();
-
-        m.addAttribute("products", products);
-        m.addAttribute("productsSize", products.size());
-
-        m.addAttribute("pageNo", page.getNumber());
-        m.addAttribute("pageSize", pageSize);
-        m.addAttribute("totalElements", page.getTotalElements());
-        m.addAttribute("totalPages", page.getTotalPages());
-        m.addAttribute("isFirst", page.isFirst());
-        m.addAttribute("isLast", page.isLast());
-
-        return "product";
-    }
-
-    @GetMapping("/product/{id}")
-    public String viewCurrentProduct(@PathVariable int id, Model m) {
-        Product product = productService.getProductById(id);
-        m.addAttribute("product", product);
-        return "view_product";
     }
 
     @PostMapping("/saveUser")

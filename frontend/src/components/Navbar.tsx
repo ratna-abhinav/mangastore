@@ -13,12 +13,12 @@ export default function Navbar() {
         </Link>
 
         <nav className="flex items-center gap-4 text-sm text-slate-600">
-          <a href="/home" className="hover:text-emerald-600">
+          <Link to="/home" className="hover:text-emerald-600">
             Home
-          </a>
-          <a href="/products" className="hover:text-emerald-600">
+          </Link>
+          <Link to="/products" className="hover:text-emerald-600">
             Products
-          </a>
+          </Link>
 
           {loading ? (
             <span className="h-8 w-20 animate-pulse rounded bg-slate-100" />
