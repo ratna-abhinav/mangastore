@@ -1,5 +1,6 @@
+import { useState } from 'react';
 import { Link, useParams } from 'react-router-dom';
-import { useQuery, useQueryClient } from '@tanstack/react-query';
+import { useQuery } from '@tanstack/react-query';
 import { addToCart } from '../api/userArea';
 import { fetchProduct } from '../api/catalog';
 import { inr } from '../utils/format';
@@ -9,8 +10,8 @@ import { useAuth } from '../context/AuthContext';
 export default function ProductDetail() {
   const { id } = useParams();
   const toast = useToast();
-  const queryClient = useQueryClient();
-  const { user } = useAuth();
+  const { user, refresh } = useAuth();
+  const [adding, setAdding] = useState(false);
   const { data: product, isLoading, isError } = useQuery({
     queryKey: ['product', id],
     queryFn: () => fetchProduct(id!),
@@ -22,9 +23,11 @@ export default function ProductDetail() {
       toast('info', 'Please sign in to add items to your cart.');
       return;
     }
+    if (adding) return;
+    setAdding(true);
     try {
       const res = await addToCart(product!.id);
-      void queryClient.invalidateQueries({ queryKey: ['auth'] });
+      await refresh();
       toast('success', `Added to cart !! (cart: ${res.cartCount})`);
     } catch (err) {
       if (err && typeof err === 'object' && 'status' in err && (err as { status: number }).status === 409) {
@@ -32,6 +35,8 @@ export default function ProductDetail() {
       } else {
         toast('error', 'Cannot be added !!');
       }
+    } finally {
+      setAdding(false);
     }
   };
 
@@ -87,10 +92,10 @@ export default function ProductDetail() {
 
         <button
           onClick={() => void add()}
-          disabled={product.stock === 0}
+          disabled={product.stock === 0 || adding}
           className="w-full rounded-xl bg-emerald-600 py-3 font-semibold text-white transition hover:bg-emerald-500 disabled:cursor-not-allowed disabled:bg-slate-300 sm:w-64"
         >
-          Add to Cart 🛒
+          {adding ? 'Adding…' : 'Add to Cart 🛒'}
         </button>
 
         <div className="rounded-xl border border-slate-200 bg-white p-5">

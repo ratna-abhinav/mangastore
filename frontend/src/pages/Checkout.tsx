@@ -10,7 +10,7 @@ const inputCls = 'w-full rounded-lg border border-slate-300 px-3 py-2 text-sm ou
 const labelCls = 'mb-1 block text-sm font-medium text-slate-700';
 
 export default function Checkout() {
-  const { user } = useAuth();
+  const { user, refresh } = useAuth();
   const toast = useToast();
   const navigate = useNavigate();
   const queryClient = useQueryClient();
@@ -67,7 +67,8 @@ export default function Checkout() {
     setBusy(true);
     try {
       await placeOrder(form);
-      void queryClient.invalidateQueries({ queryKey: ['me'] });
+      await refresh();
+      void queryClient.invalidateQueries({ queryKey: ['cart'] });
       toast('success', 'Order placed successfully !!');
       navigate('/my-orders');
     } catch {

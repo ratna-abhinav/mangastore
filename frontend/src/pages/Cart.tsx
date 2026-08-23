@@ -1,38 +1,36 @@
+import { useState } from 'react';
 import { Link } from 'react-router-dom';
 import { keepPreviousData, useQuery, useQueryClient } from '@tanstack/react-query';
 import { fetchCart, removeCartItem, updateCartItem } from '../api/userArea';
+import { useAuth } from '../context/AuthContext';
 import { inr } from '../utils/format';
 import { useToast } from '../components/Toast';
 
 export default function Cart() {
   const toast = useToast();
+  const { refresh } = useAuth();
   const queryClient = useQueryClient();
+  const [pendingId, setPendingId] = useState<number | null>(null);
   const cart = useQuery({ queryKey: ['cart'], queryFn: fetchCart, placeholderData: keepPreviousData });
 
-  const refreshAll = () => {
-    void queryClient.invalidateQueries({ queryKey: ['cart'] });
-    void queryClient.invalidateQueries({ queryKey: ['me'] });
-    void queryClient.invalidateQueries({ queryKey: ['auth'] });
-  };
-
-  const changeQty = async (id: number, action: 'in' | 'de') => {
+  const mutate = async (id: number, fn: () => Promise<void>, successMsg?: string) => {
+    if (pendingId !== null) return;
+    setPendingId(id);
     try {
-      await updateCartItem(id, action);
-      refreshAll();
+      await fn();
+      await refresh();
+      void queryClient.invalidateQueries({ queryKey: ['cart'] });
+      void queryClient.invalidateQueries({ queryKey: ['checkout'] });
+      if (successMsg) toast('info', successMsg);
     } catch {
       toast('error', 'Cannot add more !!');
+    } finally {
+      setPendingId(null);
     }
   };
 
-  const remove = async (id: number) => {
-    try {
-      await removeCartItem(id);
-      toast('info', 'Item removed from cart');
-      refreshAll();
-    } catch {
-      toast('error', 'Failed to remove item');
-    }
-  };
+  const changeQty = (id: number, action: 'in' | 'de') => mutate(id, () => updateCartItem(id, action));
+  const remove = (id: number) => mutate(id, () => removeCartItem(id), 'Item removed from cart');
 
   if (cart.isLoading) return <p className="py-16 text-center text-slate-500">Loading cart…</p>;
 
@@ -64,22 +62,29 @@ export default function Cart() {
               <div className="flex items-center justify-between">
                 <div className="flex items-center gap-3">
                   <button
-                    onClick={() => void changeQty(item.id, 'de')}
-                    className="h-8 w-8 rounded-full border border-slate-300 text-slate-600 hover:border-emerald-500"
+                    onClick={() => changeQty(item.id, 'de')}
+                    disabled={pendingId === item.id}
+                    className="h-8 w-8 rounded-full border border-slate-300 text-slate-600 hover:border-emerald-500 disabled:opacity-40"
                   >
                     −
                   </button>
                   <span className="w-6 text-center font-semibold">{item.quantity}</span>
                   <button
-                    onClick={() => void changeQty(item.id, 'in')}
-                    className="h-8 w-8 rounded-full border border-slate-300 text-slate-600 hover:border-emerald-500"
+                    onClick={() => changeQty(item.id, 'in')}
+                    disabled={pendingId === item.id || item.quantity >= item.stock}
+                    title={item.quantity >= item.stock ? 'No more stock' : undefined}
+                    className="h-8 w-8 rounded-full border border-slate-300 text-slate-600 hover:border-emerald-500 disabled:opacity-40"
                   >
                     +
                   </button>
                   <span className="ml-2 text-xs text-slate-400">{inr(item.discountedPrice)} each</span>
                 </div>
-                <button onClick={() => void remove(item.id)} className="text-sm text-red-400 hover:text-red-600">
-                  Remove
+                <button
+                  onClick={() => remove(item.id)}
+                  disabled={pendingId === item.id}
+                  className="text-sm text-red-400 hover:text-red-600 disabled:opacity-40"
+                >
+                  {pendingId === item.id ? 'Removing…' : 'Remove'}
                 </button>
               </div>
             </div>

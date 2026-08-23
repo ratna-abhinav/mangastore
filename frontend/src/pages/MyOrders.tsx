@@ -1,3 +1,4 @@
+import { useState } from 'react';
 import { Link } from 'react-router-dom';
 import { useQuery, useQueryClient } from '@tanstack/react-query';
 import { cancelOrder, fetchMyOrders } from '../api/userArea';
@@ -17,15 +18,20 @@ const statusStyles: Record<string, string> = {
 export default function MyOrders() {
   const toast = useToast();
   const queryClient = useQueryClient();
+  const [cancellingId, setCancellingId] = useState<number | null>(null);
   const orders = useQuery({ queryKey: ['my-orders'], queryFn: fetchMyOrders });
 
   const cancel = async (id: number) => {
+    if (cancellingId !== null) return;
+    setCancellingId(id);
     try {
       await cancelOrder(id);
       toast('info', 'Order cancelled !!');
       void queryClient.invalidateQueries({ queryKey: ['my-orders'] });
     } catch {
       toast('error', 'Failed to cancel order');
+    } finally {
+      setCancellingId(null);
     }
   };
 
@@ -66,8 +72,12 @@ export default function MyOrders() {
             </span>
             <span className="font-bold text-slate-900">{inr(o.price)}</span>
             {(o.status === 'In Progress' || o.status === 'Order Received') && (
-              <button onClick={() => void cancel(o.id)} className="text-xs text-red-400 hover:text-red-600">
-                Cancel order
+              <button
+                onClick={() => void cancel(o.id)}
+                disabled={cancellingId !== null}
+                className="text-xs text-red-400 hover:text-red-600 disabled:opacity-40"
+              >
+                {cancellingId === o.id ? 'Cancelling…' : 'Cancel order'}
               </button>
             )}
           </div>
