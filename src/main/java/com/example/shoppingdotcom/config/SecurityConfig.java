@@ -16,6 +16,7 @@ import org.springframework.security.crypto.password.PasswordEncoder;
 import org.springframework.security.web.SecurityFilterChain;
 import org.springframework.security.web.authentication.AuthenticationFailureHandler;
 import org.springframework.security.web.authentication.AuthenticationSuccessHandler;
+import org.springframework.security.web.util.matcher.AntPathRequestMatcher;
 
 @Configuration
 public class SecurityConfig {
@@ -51,6 +52,8 @@ public class SecurityConfig {
                 .authorizeHttpRequests(req -> req.requestMatchers("/users/**").hasRole("USER")
                         .requestMatchers("/admin/**").hasRole("ADMIN")
                         .requestMatchers("/**").permitAll())
+                .exceptionHandling(ex -> ex.defaultAuthenticationEntryPointFor(
+                        new ApiAuthenticationEntryPoint(), new AntPathRequestMatcher("/api/**")))
                 .formLogin(form -> form.loginPage("/signin")
                         .loginProcessingUrl("/login")
                         .failureHandler(authenticationFailureHandler)
