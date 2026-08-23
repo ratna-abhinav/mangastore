@@ -55,7 +55,7 @@ public class HomeController {
     private CartService cartService;
 
     @Autowired
-    private FileUploadService fileUploadService;
+    private NeonStorageService neonStorageService;
 
     @ModelAttribute
     public void getUserDetails(Principal p, Model m) {
@@ -150,7 +150,7 @@ public class HomeController {
             try {
                 if (!file.isEmpty()) {
                     try {
-                        String imageUploadUrl = fileUploadService.uploadFile(file);
+                        String imageUploadUrl = neonStorageService.uploadFile("profiles", file);
                         user.setProfileImage(imageUploadUrl);
                         userService.saveUser(user);
                     } catch (IOException e) {

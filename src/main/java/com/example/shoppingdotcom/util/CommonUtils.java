@@ -93,10 +93,4 @@ public class CommonUtils {
         Users user = userService.getUserByEmail(email);
         return user;
     }
-
-
-
-    public String getImageUrl(String bucketName, String blobName) {
-        return String.format("https://firebasestorage.googleapis.com/v0/b/%s/o/%s?alt=media", bucketName, blobName);
-    }
 }
