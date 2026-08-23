@@ -34,9 +34,12 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
       const me = await fetchCurrentUser().catch(() => null);
       setUser(me);
       setLoading(false);
+      // any user-scoped queries cached before sign-in (401s or empty results)
+      // must be refetched now that the session cookie exists
+      void queryClient.invalidateQueries();
       return me;
     },
-    [],
+    [queryClient],
   );
 
   const logout = useCallback(async () => {
