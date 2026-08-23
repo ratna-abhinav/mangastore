@@ -1,6 +1,6 @@
 import { useState } from 'react';
 import { Link, useParams } from 'react-router-dom';
-import { useQuery } from '@tanstack/react-query';
+import { useQuery, useQueryClient } from '@tanstack/react-query';
 import { addToCart } from '../api/userArea';
 import { fetchProduct } from '../api/catalog';
 import { inr } from '../utils/format';
@@ -10,6 +10,7 @@ import { useAuth } from '../context/AuthContext';
 export default function ProductDetail() {
   const { id } = useParams();
   const toast = useToast();
+  const queryClient = useQueryClient();
   const { user, refresh } = useAuth();
   const [adding, setAdding] = useState(false);
   const { data: product, isLoading, isError } = useQuery({
@@ -28,6 +29,9 @@ export default function ProductDetail() {
     try {
       const res = await addToCart(product!.id);
       await refresh();
+      // anyone already looking at cart/checkout must see the new item
+      void queryClient.invalidateQueries({ queryKey: ['cart'] });
+      void queryClient.invalidateQueries({ queryKey: ['checkout'] });
       toast('success', `Added to cart !! (cart: ${res.cartCount})`);
     } catch (err) {
       if (err && typeof err === 'object' && 'status' in err && (err as { status: number }).status === 409) {
