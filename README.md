@@ -1,86 +1,71 @@
 # 📚 MangaStore
 
-**MangaStore** is your ultimate destination for exploring the world of manga, Korean manhwas, and Chinese donghuas. Whether you're a passionate reader or just starting your journey into these exciting genres, we’ve got something for everyone. Dive deep into our curated collections, join vibrant discussions with fellow enthusiasts in our community forum, and purchase your favorite titles to enjoy anytime. Discover new stories, share your thoughts, and be part of a global community that celebrates the best of manga, manhwas, and donghuas! 🎉
+**MangaStore** is your destination for manga, Korean manhwas, and Chinese donghuas — browse curated genres, fill your cart, place orders, and manage the whole storefront from a built-in admin dashboard.
 
-🌐 **Live Demo**: [MangaStore](https://scm-deployment-latest.onrender.com/home)
+🌐 **Live**: deployed on [Render](https://render.com) as a single Docker image.
 
-![MangaStore Screenshot](https://firebasestorage.googleapis.com/v0/b/uploadimage-90bc2.appspot.com/o/HomePage.png?alt=media&token=53fe7c65-516c-4450-9c3c-6913337f2b28)
+![Stack](https://img.shields.io/badge/frontend-React%20%2B%20Vite%20%2B%20Tailwind-61DAFB?logo=react)
+![Stack](https://img.shields.io/badge/backend-Spring%20Boot%203%20(Java%2017)-6DB33F?logo=springboot)
+![Stack](https://img.shields.io/badge/database-PostgreSQL%20(Neon)-4479A1?logo=postgresql)
+![Stack](https://img.shields.io/badge/images-Neon%20Object%20Storage-F6821F)
 
-## 🌟 Features
+## ✨ Features
 
-- 🔍 **Explore Manga**: Discover a wide range of manga, manhwas, and donghuas with detailed descriptions and reviews.
-- 🛒 **Purchase Platform**: Securely purchase your favorite titles and enjoy seamless integration with payment options.
-- 📑 **User Authentication**: Spring Security powered authentication to ensure secure login and access control.
-- 📊 **Admin Dashboard**: Manage genres and products with ease — add, edit, or remove items in real time.
+- 🔍 **Storefront** — genre browsing, title search, filters & pagination, product details
+- 🛒 **Cart & checkout** — quantity controls, COD/online orders, order history with status tracking and cancellation
+- 👤 **Accounts** — register (with avatar), session login, forgot/reset password via email
+- 🛠 **Admin dashboard** — stats overview, product/category CRUD with image uploads, order status management, user enable/disable, add administrators
+- 🖼 Images hosted on Neon Object Storage (S3-compatible); UI served as a React SPA from inside the Spring Boot jar
 
-## 🚀 Technologies Used
+## 🧱 Architecture
 
-- **Backend**: ![Java](https://img.shields.io/badge/Java-ED8B00?style=for-the-badge&logo=java&logoColor=white), ![Spring Boot](https://img.shields.io/badge/Spring_Boot-6DB33F?style=for-the-badge&logo=spring-boot&logoColor=white)
-- **Frontend**: ![Thymeleaf](https://img.shields.io/badge/Thymeleaf-005F0F?style=for-the-badge&logo=thymeleaf&logoColor=white), ![Bootstrap](https://img.shields.io/badge/Bootstrap-563D7C?style=for-the-badge&logo=bootstrap&logoColor=white)
-- **Database**: ![Spring Data JPA](https://img.shields.io/badge/Spring%20Data%20JPA-4479A1?style=for-the-badge&logo=spring&logoColor=white), ![SQL](https://img.shields.io/badge/SQL-4479A1?style=for-the-badge&logo=postgresql&logoColor=white), ![Firebase](https://img.shields.io/badge/Firebase-FFCA28?style=for-the-badge&logo=firebase&logoColor=black)
-- **Security**: ![Spring Security](https://img.shields.io/badge/Spring_Security-6DB33F?style=for-the-badge&logo=spring-security&logoColor=white)
-- **Version Control**: ![Git](https://img.shields.io/badge/Git-F05032?style=for-the-badge&logo=git&logoColor=white)
+```
+frontend/          React 19 + Vite + TypeScript + Tailwind CSS v4 SPA
+src/main/java/…    Spring Boot REST API (/api/**) + SPA forward controller
+Neon Postgres      application data
+Neon Object Store  product/category/profile images (public bucket)
+Firebase           ❌ removed — migrated off in Phase 1 of the UI overhaul
+Thymeleaf          ❌ removed — replaced entirely by the React SPA
+```
 
-## 🔧 Installation & Setup
+The frontend build output is packaged *into* the Spring Boot jar, so production runs as one service: pages come from the SPA, data from `/api/**`, auth from session cookies.
 
-To set up the project locally:
+## 🚀 Run locally
 
-1. **Clone the repository**:
-    ```bash
-    git clone https://github.com/your-username/manga-store.git
-    cd manga-store
-    ```
+Requirements: Java 17+ (`JAVA_HOME` set to the JDK root), Node.js 18+.
 
-2. **Install dependencies**:
-    - Ensure you have Java 11+, Maven, and Spring Boot installed.
-    ```bash
-    mvn clean install
-    ```
+```powershell
+# 1. configure credentials (never committed)
+#    create .env in the project root:
+#    DATASOURCE_URL=jdbc:postgresql://<host>/<db>
+#    DB_USER=...            DB_PASSWORD=...
+#    SENDER_EMAIL=...       APP_PASSWORD=...        # gmail app password for reset mails
+#    AWS_ENDPOINT_URL_S3=   AWS_ACCESS_KEY_ID=      # Neon Object Storage credentials
+#    AWS_SECRET_ACCESS_KEY= AWS_REGION=us-east-2
+#    NEON_BUCKET=media-storage
 
-3. **Configure Firebase**:
-    - Set up Firebase and update the `application.properties` file with Firebase credentials.
+# 2. backend + packaged UI on http://localhost:8080
+.\mvnw.cmd clean package -DskipTests
+java -jar target\shoppingdotcom-0.0.1-SNAPSHOT.jar
 
-4. **Run the application**:
-    ```bash
-    mvn spring-boot:run
-    ```
+# 3. or live-reload UI development on http://localhost:5173
+cd frontend
+npm install
+npm run dev        # proxies /api to :8080
+```
 
-5. **Access the app**:
-    - Navigate to `http://localhost:8080` to explore the app!
+Default seeded logins (if present in your DB): `vi@admin.com` (admin), `mai@user.com` (customer).
 
-## 📸 Screenshots
+## 🛡 Security notes
 
-Here are some screenshots of different pages:
-
-- **Home Page**:
-  ![Home Page](https://firebasestorage.googleapis.com/v0/b/uploadimage-90bc2.appspot.com/o/Index%20Page.png?alt=media)
-
-- **Products Page**:
-  ![Products Page](https://firebasestorage.googleapis.com/v0/b/uploadimage-90bc2.appspot.com/o/Products.png?alt=media)
-
-- **Admin Dashboard**:
-  ![Admin Dashboard](https://firebasestorage.googleapis.com/v0/b/uploadimage-90bc2.appspot.com/o/Admin%20Dashboard.png?alt=media)
-
-- **List of Products**:
-  ![Admin Dashboard](https://firebasestorage.googleapis.com/v0/b/uploadimage-90bc2.appspot.com/o/Admin%20View%20Products.png?alt=media)
-
-- **Add Category**:
-  ![Admin Dashboard](https://firebasestorage.googleapis.com/v0/b/uploadimage-90bc2.appspot.com/o/Admin%20Add%20Genre.png?alt=media)
-
-- **Login Page**:
-  ![Admin Dashboard](https://firebasestorage.googleapis.com/v0/b/uploadimage-90bc2.appspot.com/o/LogIn.png?alt=media)
-
-## 🛡️ Security
-
-- The app uses **Spring Security** for route protection and user authentication.
+- Secrets live only in `.env` / Render environment variables — never in git
+- Session-cookie auth; CSRF is intentionally disabled (same-origin SPA + JSON APIs)
+- `/api/admin/**` requires `ROLE_ADMIN`; `/api/users/**` requires any authenticated role
 
 ## 📬 Contact
 
-For any queries, feel free to reach out:
-
 - **Developer**: Abhinav Ratna
 - **Email**: abhinavratna1984@gmail.com
-- **Project Link**: [MangaStore on Railway](https://mangastore-production.up.railway.app)
 
 ---
 
