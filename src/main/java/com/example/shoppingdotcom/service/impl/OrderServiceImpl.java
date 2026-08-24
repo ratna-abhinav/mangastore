@@ -11,11 +11,15 @@ import org.springframework.data.domain.Page;
 import org.springframework.data.domain.PageRequest;
 import org.springframework.data.domain.Pageable;
 import org.springframework.stereotype.Service;
+import org.springframework.transaction.annotation.Transactional;
 
 import java.time.LocalDate;
+import java.util.ArrayList;
+import java.util.HashSet;
 import java.util.List;
 import java.util.Objects;
 import java.util.Optional;
+import java.util.Set;
 import java.util.UUID;
 
 @Service
@@ -31,13 +35,21 @@ public class OrderServiceImpl implements OrderService {
     private CommonUtils commonUtils;
 
     @Override
+    @Transactional(rollbackFor = Exception.class)
     public void saveOrder(Integer userid, OrderRequestDTO orderRequest) throws Exception {
 
         List<CartItem> carts = cartRepository.findByUserId(userid);
-        for (CartItem cart : carts) {
+        if (carts.isEmpty()) {
+            return;
+        }
+
+        List<String> uniqueOrderIds = generateUniqueOrderIds(carts.size());
+        List<ProductOrder> orders = new ArrayList<>();
+
+        for (int i = 0; i < carts.size(); i++) {
+            CartItem cart = carts.get(i);
             ProductOrder order = new ProductOrder();
-            String uniqueOrderId = generateUniqueOrderId();
-            order.setOrderId(uniqueOrderId);
+            order.setOrderId(uniqueOrderIds.get(i));
             order.setOrderDate(LocalDate.now());
 
             order.setProduct(cart.getProduct());
@@ -51,9 +63,12 @@ public class OrderServiceImpl implements OrderService {
 
             OrderAddress address = getOrderAddress(orderRequest);
             order.setOrderAddress(address);
-            ProductOrder productOrder = orderRepository.save(order);
+            orders.add(order);
+        }
 
-            commonUtils.sendMailForProductOrder(productOrder, "success");
+        List<ProductOrder> savedOrders = orderRepository.saveAll(orders);
+        for (ProductOrder savedOrder : savedOrders) {
+            commonUtils.sendMailForProductOrderAsync(savedOrder, "success");
         }
     }
 
@@ -100,12 +115,15 @@ public class OrderServiceImpl implements OrderService {
         return address;
     }
 
-    private String generateUniqueOrderId() {
-        String orderId;
-        do {
-            orderId = UUID.randomUUID().toString();
-        } while (orderRepository.existsByOrderId(orderId));
-        return orderId;
+    private List<String> generateUniqueOrderIds(int count) {
+        Set<String> ids = new HashSet<>(count * 2);
+        while (ids.size() < count) {
+            while (ids.size() < count) {
+                ids.add(UUID.randomUUID().toString());
+            }
+            ids.removeAll(orderRepository.findExistingOrderIds(ids));
+        }
+        return new ArrayList<>(ids);
     }
 
     @Override

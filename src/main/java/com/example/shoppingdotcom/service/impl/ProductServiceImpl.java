@@ -13,6 +13,7 @@ import org.springframework.data.domain.Page;
 import org.springframework.data.domain.PageImpl;
 import org.springframework.data.domain.PageRequest;
 import org.springframework.data.domain.Pageable;
+import org.springframework.data.domain.Sort;
 import org.springframework.stereotype.Service;
 import org.springframework.util.ObjectUtils;
 import org.springframework.web.multipart.MultipartFile;
@@ -112,20 +113,14 @@ public class ProductServiceImpl implements ProductService {
 
     @Override
     public List<Product> getAllActiveProducts(String category) {
-        List<Product> products = null;
-        if (ObjectUtils.isEmpty(category)) {
-            List<Category> activeCategories = categoryRepository.findByIsActive(1);
-            for (Category curCategory : activeCategories) {
-                List<Product> curCategoryProducts = productRepository.findByIsActiveAndCategory(1, curCategory.getName());
-                if (!ObjectUtils.isEmpty(curCategoryProducts)) {
-                    if (products == null) products = curCategoryProducts;
-                    else products.addAll(curCategoryProducts);
-                }
-            }
-        } else {
-            products = productRepository.findByIsActiveAndCategory(1, category);
+        if (!ObjectUtils.isEmpty(category)) {
+            return productRepository.findByIsActiveAndCategory(1, category);
         }
-        return products;
+        List<String> activeCategoryNames = getActiveCategoryNames();
+        if (activeCategoryNames.isEmpty()) {
+            return new ArrayList<>();
+        }
+        return productRepository.findByIsActiveAndCategoryInOrderByIdDesc(1, activeCategoryNames);
     }
 
     @Override
@@ -153,33 +148,23 @@ public class ProductServiceImpl implements ProductService {
 
     @Override
     public Page<Product> getAllActiveProductPagination(Integer pageNo, Integer pageSize, String category) {
-        Pageable pageable = PageRequest.of(pageNo, pageSize);
-        Page<Product> productsPage;
+        Sort newestFirst = Sort.by(Sort.Direction.DESC, "id");
+        Pageable pageable = PageRequest.of(pageNo, pageSize, newestFirst);
 
         if (ObjectUtils.isEmpty(category)) {
-            List<Product> allProducts = new ArrayList<>();
-            List<Category> activeCategories = categoryRepository.findByIsActive(1);
-
-            for (Category curCategory : activeCategories) {
-                Page<Product> curCategoryProductsPage = productRepository.findByIsActiveAndCategory(Pageable.unpaged(), 1, curCategory.getName());
-                if (!curCategoryProductsPage.isEmpty()) {
-                    allProducts.addAll(curCategoryProductsPage.getContent());
-                }
+            List<String> activeCategoryNames = getActiveCategoryNames();
+            if (activeCategoryNames.isEmpty()) {
+                return new PageImpl<>(new ArrayList<>(), pageable, 0);
             }
-            int start = (int) pageable.getOffset();
-            int end = Math.min((start + pageSize), allProducts.size());
-
-            List<Product> paginatedProducts;
-            if (start > allProducts.size()) {
-                paginatedProducts = new ArrayList<>();
-            } else {
-                paginatedProducts = allProducts.subList(start, end);
-            }
-            productsPage = new PageImpl<>(paginatedProducts, pageable, allProducts.size());
-        } else {
-            productsPage = productRepository.findByIsActiveAndCategory(pageable, 1, category);
+            return productRepository.findByIsActiveAndCategoryIn(1, activeCategoryNames, pageable);
         }
-        return productsPage;
+        return productRepository.findByIsActiveAndCategory(pageable, 1, category);
+    }
+
+    private List<String> getActiveCategoryNames() {
+        return categoryRepository.findByIsActive(1).stream()
+                .map(Category::getName)
+                .toList();
     }
 
 }
