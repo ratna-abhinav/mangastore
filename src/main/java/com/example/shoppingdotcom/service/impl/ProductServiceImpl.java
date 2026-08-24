@@ -25,10 +25,7 @@ import java.nio.file.Path;
 import java.nio.file.Paths;
 import java.nio.file.StandardCopyOption;
 import java.util.ArrayList;
-import java.util.Arrays;
 import java.util.List;
-import java.util.Locale;
-import java.util.stream.Collectors;
 
 @Service
 public class ProductServiceImpl implements ProductService {
@@ -138,46 +135,14 @@ public class ProductServiceImpl implements ProductService {
 
     @Override
     public Page<Product> searchProductPagination(Integer pageNo, Integer pageSize, String keyword) {
-        String sanitized = sanitizeKeyword(keyword);
         Pageable pageable = PageRequest.of(pageNo, pageSize);
-        List<Product> content = productRepository.searchActiveFullText(
-                buildPrefixTsQuery(sanitized), sanitized, pageSize, (long) pageNo * pageSize);
-        long total = (pageNo == 0 && content.size() < pageSize)
-                ? content.size()
-                : productRepository.countActiveFullText(buildPrefixTsQuery(sanitized), sanitized);
-        return new PageImpl<>(content, pageable, total);
+        return productRepository.findByIsActiveAndTitleContainingIgnoreCaseOrIsActiveAndCategoryContainingIgnoreCase(1, keyword, 1, keyword, pageable);
     }
 
     @Override
     public Page<Product> searchProductAdminPagination(Integer pageNo, Integer pageSize, String keyword) {
-        String sanitized = sanitizeKeyword(keyword);
         Pageable pageable = PageRequest.of(pageNo, pageSize);
-        List<Product> content = productRepository.searchAllFullText(
-                buildPrefixTsQuery(sanitized), sanitized, pageSize, (long) pageNo * pageSize);
-        long total = (pageNo == 0 && content.size() < pageSize)
-                ? content.size()
-                : productRepository.countAllFullText(buildPrefixTsQuery(sanitized), sanitized);
-        return new PageImpl<>(content, pageable, total);
-    }
-
-    private String sanitizeKeyword(String keyword) {
-        if (ObjectUtils.isEmpty(keyword)) {
-            return "";
-        }
-        return keyword.trim().toLowerCase(Locale.ROOT)
-                .replaceAll("[^a-z0-9 ]+", "")
-                .replaceAll("\\s+", " ")
-                .trim();
-    }
-
-    private String buildPrefixTsQuery(String sanitized) {
-        if (sanitized.isEmpty()) {
-            return null;
-        }
-        return Arrays.stream(sanitized.split(" "))
-                .filter(token -> !token.isEmpty())
-                .map(token -> token + ":*")
-                .collect(Collectors.joining(" & "));
+        return productRepository.findByTitleContainingIgnoreCaseOrCategoryContainingIgnoreCase(keyword, keyword, pageable);
     }
 
 
