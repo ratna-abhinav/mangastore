@@ -1,0 +1,29 @@
+services:
+  - type: web
+    name: mangastore
+    runtime: docker
+    plan: free
+    healthCheckPath: /api/catalog/home
+    envVars:
+      - key: DATASOURCE_URL
+        sync: false
+      - key: DB_USER
+        sync: false
+      - key: DB_PASSWORD
+        sync: false
+      - key: AWS_ENDPOINT_URL_S3
+        sync: false
+      - key: AWS_REGION
+        sync: false
+      - key: AWS_ACCESS_KEY_ID
+        sync: false
+      - key: AWS_SECRET_ACCESS_KEY
+        sync: false
+      - key: NEON_BUCKET
+        sync: false
+      - key: SENDER_EMAIL
+        sync: false
+      - key: APP_PASSWORD
+        sync: false
+      - key: GEMINI_API_KEY
+        sync: false
