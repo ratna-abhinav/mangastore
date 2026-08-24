@@ -164,7 +164,7 @@ public class ProductServiceImpl implements ProductService {
 
         String queryVec = null;
         if (!sanitized.isEmpty() && embeddingService.isEnabled()) {
-            queryVec = embeddingService.embedAsVectorLiteral(sanitized);
+            queryVec = embeddingService.embedQueryAsVectorLiteral(sanitized);
         }
 
         log.info("Search q='{}' tsQuery='{}' semantic={} activeOnly={} page={} size={}",

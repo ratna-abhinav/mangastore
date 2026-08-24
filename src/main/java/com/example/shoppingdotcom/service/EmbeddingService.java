@@ -21,7 +21,10 @@ public class EmbeddingService {
 
     private static final Logger log = LoggerFactory.getLogger(EmbeddingService.class);
 
-    private static final String MODEL = "text-embedding-004";
+    private static final String MODEL = "gemini-embedding-001";
+    private static final int DIMENSIONS = 768;
+    private static final String TASK_DOCUMENT = "RETRIEVAL_DOCUMENT";
+    private static final String TASK_QUERY = "RETRIEVAL_QUERY";
     private static final int MAX_TEXT_CHARS = 8000;
 
     private final String apiKey;
@@ -48,7 +51,7 @@ public class EmbeddingService {
     @PostConstruct
     void logStatus() {
         if (isEnabled()) {
-            log.info("EmbeddingService enabled: model={} dims=768", MODEL);
+            log.info("EmbeddingService enabled: model={} dims={}", MODEL, DIMENSIONS);
         } else {
             log.warn("EmbeddingService DISABLED: GEMINI_API_KEY not set, semantic search will be skipped");
         }
@@ -58,20 +61,30 @@ public class EmbeddingService {
         return !apiKey.isEmpty();
     }
 
-    public float[] embed(String text) {
+    public float[] embedQuery(String text) {
+        return doEmbed(text, TASK_QUERY);
+    }
+
+    public float[] embedDocument(String text) {
+        return doEmbed(text, TASK_DOCUMENT);
+    }
+
+    private float[] doEmbed(String text, String taskType) {
         if (!isEnabled() || text == null || text.isBlank()) {
             return null;
         }
         String trimmed = text.length() > MAX_TEXT_CHARS ? text.substring(0, MAX_TEXT_CHARS) : text;
         long start = System.nanoTime();
-        log.info("Gemini embed START: model={} chars={}", MODEL, trimmed.length());
+        log.info("Gemini embed START: model={} task={} chars={}", MODEL, taskType, trimmed.length());
         try {
             JsonNode response = restClient.post()
                     .uri("/models/" + MODEL + ":embedContent?key=" + apiKey)
                     .header("Content-Type", "application/json")
                     .body(Map.of(
                             "model", "models/" + MODEL,
-                            "content", Map.of("parts", List.of(Map.of("text", trimmed)))))
+                            "content", Map.of("parts", List.of(Map.of("text", trimmed))),
+                            "taskType", taskType,
+                            "outputDimensionality", DIMENSIONS))
                     .retrieve()
                     .body(JsonNode.class);
             JsonNode values = response == null ? null : response.path("embedding").path("values");
@@ -91,8 +104,13 @@ public class EmbeddingService {
         }
     }
 
-    public String embedAsVectorLiteral(String text) {
-        float[] vector = embed(text);
+    public String embedQueryAsVectorLiteral(String text) {
+        float[] vector = embedQuery(text);
+        return vector == null ? null : toVectorLiteral(vector);
+    }
+
+    public String embedDocumentAsVectorLiteral(String text) {
+        float[] vector = embedDocument(text);
         return vector == null ? null : toVectorLiteral(vector);
     }
 
@@ -103,7 +121,7 @@ public class EmbeddingService {
             return;
         }
         try {
-            String literal = embedAsVectorLiteral(text);
+            String literal = embedDocumentAsVectorLiteral(text);
             if (literal == null) {
                 log.warn("Embedding skipped for productId={}: no vector produced", productId);
                 return;
@@ -127,6 +145,13 @@ public class EmbeddingService {
             sb.append(category);
         }
         return sb.toString().trim();
+    }
+
+    private String toVectorLiteralOrWarn(float[] vector, Integer productId) {
+        if (vector == null) {
+            return null;
+        }
+        return toVectorLiteral(vector);
     }
 
     private static String toVectorLiteral(float[] vector) {

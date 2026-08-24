@@ -46,7 +46,7 @@ public class ProductEmbeddingBackfill implements ApplicationRunner {
                     (String) row.get("title"),
                     (String) row.get("description"),
                     (String) row.get("category"));
-            String literal = embeddingService.embedAsVectorLiteral(text);
+            String literal = embeddingService.embedDocumentAsVectorLiteral(text);
             if (literal == null) {
                 log.warn("Backfill failed for productId={}", id);
                 continue;

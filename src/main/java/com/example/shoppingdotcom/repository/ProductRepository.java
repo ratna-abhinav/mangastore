@@ -51,7 +51,7 @@ public interface ProductRepository extends JpaRepository<Product, Integer> {
              OR (char_length(:keyword) >= 2
                  AND (lower(coalesce(title, '')) LIKE '%' || :keyword || '%'
                       OR lower(coalesce(category, '')) LIKE '%' || :keyword || '%'))
-             OR (:queryVec IS NOT NULL AND embedding <=> CAST(:queryVec AS vector) < 0.6))
+             OR (:queryVec IS NOT NULL AND embedding <=> CAST(:queryVec AS vector) < 0.34))
             """;
 
     String RANK_EXPRESSION = """
