@@ -9,6 +9,7 @@ import jakarta.servlet.http.HttpServletRequest;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.mail.javamail.JavaMailSender;
 import org.springframework.mail.javamail.MimeMessageHelper;
+import org.springframework.scheduling.annotation.Async;
 import org.springframework.stereotype.Component;
 
 import java.io.UnsupportedEncodingException;
@@ -50,6 +51,15 @@ public class CommonUtils {
     public static String generateUrl(HttpServletRequest request) {
         String siteUrl = request.getRequestURL().toString();
         return siteUrl.replace(request.getServletPath(), "");
+    }
+
+    @Async("mailExecutor")
+    public void sendMailForProductOrderAsync(ProductOrder order, String status) {
+        try {
+            sendMailForProductOrder(order, status);
+        } catch (Exception e) {
+            e.printStackTrace();
+        }
     }
 
     public void sendMailForProductOrder(ProductOrder order, String status) throws Exception {

@@ -167,11 +167,7 @@ public class UserRestController {
                     .body(Map.of("error", "This order can no longer be cancelled !!"));
         }
         ProductOrder order = orderService.updateOrderStatus(id, OrderStatus.CANCELLED.getName());
-        try {
-            commonUtils.sendMailForProductOrder(order, OrderStatus.CANCELLED.getName());
-        } catch (Exception ignored) {
-            // mail failure must not block cancellation
-        }
+        commonUtils.sendMailForProductOrderAsync(order, OrderStatus.CANCELLED.getName());
         return ResponseEntity.ok(Map.of("success", true, "message", "Order cancelled !!"));
     }
 

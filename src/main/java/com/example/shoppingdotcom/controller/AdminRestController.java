@@ -314,11 +314,7 @@ public class AdminRestController {
         if (ObjectUtils.isEmpty(updated)) {
             return notFound("Order not found");
         }
-        try {
-            commonUtils.sendMailForProductOrder(updated, status);
-        } catch (Exception ignored) {
-            // mail failure must not block status update
-        }
+        commonUtils.sendMailForProductOrderAsync(updated, status);
         return ResponseEntity.ok(Map.of("success", true, "message", "Order Status Updated !!",
                 "status", updated.getStatus()));
     }

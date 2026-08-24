@@ -5,6 +5,7 @@ import org.springframework.data.domain.Page;
 import org.springframework.data.domain.Pageable;
 import org.springframework.data.jpa.repository.JpaRepository;
 
+import java.util.Collection;
 import java.util.List;
 
 public interface ProductRepository extends JpaRepository<Product, Integer> {
@@ -30,4 +31,8 @@ public interface ProductRepository extends JpaRepository<Product, Integer> {
     Page<Product> findByIsActive(Pageable pageable, Integer isActive);
 
     Page<Product> findByIsActiveAndCategory(Pageable pageable, Integer isActive, String category);
+
+    List<Product> findByIsActiveAndCategoryInOrderByIdDesc(Integer isActive, Collection<String> categories);
+
+    Page<Product> findByIsActiveAndCategoryIn(Integer isActive, Collection<String> categories, Pageable pageable);
 }
