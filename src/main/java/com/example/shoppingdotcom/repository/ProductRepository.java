@@ -37,7 +37,10 @@ public interface ProductRepository extends JpaRepository<Product, Integer> {
               AND (to_tsvector('english', coalesce(title, '') || ' ' || coalesce(category, ''))
                        @@ to_tsquery('english', :tsQuery)
                    OR lower(title) % :keyword
-                   OR lower(category) % :keyword)
+                   OR lower(category) % :keyword
+                   OR (char_length(:keyword) >= 2
+                       AND (lower(coalesce(title, '')) LIKE '%' || :keyword || '%'
+                            OR lower(coalesce(category, '')) LIKE '%' || :keyword || '%')))
             ORDER BY (coalesce(ts_rank(to_tsvector('english', coalesce(title, '') || ' ' || coalesce(category, '')),
                                        to_tsquery('english', :tsQuery)), 0) * 2
                       + greatest(similarity(lower(title), :keyword),
@@ -54,7 +57,10 @@ public interface ProductRepository extends JpaRepository<Product, Integer> {
               AND (to_tsvector('english', coalesce(title, '') || ' ' || coalesce(category, ''))
                        @@ to_tsquery('english', :tsQuery)
                    OR lower(title) % :keyword
-                   OR lower(category) % :keyword)
+                   OR lower(category) % :keyword
+                   OR (char_length(:keyword) >= 2
+                       AND (lower(coalesce(title, '')) LIKE '%' || :keyword || '%'
+                            OR lower(coalesce(category, '')) LIKE '%' || :keyword || '%')))
             """, nativeQuery = true)
     long countActiveFullText(@Param("tsQuery") String tsQuery, @Param("keyword") String keyword);
 
@@ -63,7 +69,10 @@ public interface ProductRepository extends JpaRepository<Product, Integer> {
             WHERE (to_tsvector('english', coalesce(title, '') || ' ' || coalesce(category, ''))
                        @@ to_tsquery('english', :tsQuery)
                    OR lower(title) % :keyword
-                   OR lower(category) % :keyword)
+                   OR lower(category) % :keyword
+                   OR (char_length(:keyword) >= 2
+                       AND (lower(coalesce(title, '')) LIKE '%' || :keyword || '%'
+                            OR lower(coalesce(category, '')) LIKE '%' || :keyword || '%')))
             ORDER BY (coalesce(ts_rank(to_tsvector('english', coalesce(title, '') || ' ' || coalesce(category, '')),
                                        to_tsquery('english', :tsQuery)), 0) * 2
                       + greatest(similarity(lower(title), :keyword),
@@ -79,7 +88,10 @@ public interface ProductRepository extends JpaRepository<Product, Integer> {
             WHERE (to_tsvector('english', coalesce(title, '') || ' ' || coalesce(category, ''))
                        @@ to_tsquery('english', :tsQuery)
                    OR lower(title) % :keyword
-                   OR lower(category) % :keyword)
+                   OR lower(category) % :keyword
+                   OR (char_length(:keyword) >= 2
+                       AND (lower(coalesce(title, '')) LIKE '%' || :keyword || '%'
+                            OR lower(coalesce(category, '')) LIKE '%' || :keyword || '%')))
             """, nativeQuery = true)
     long countAllFullText(@Param("tsQuery") String tsQuery, @Param("keyword") String keyword);
 }

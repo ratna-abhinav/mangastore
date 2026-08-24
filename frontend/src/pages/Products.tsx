@@ -43,7 +43,13 @@ export default function Products() {
         >
           <input
             value={searchInput}
-            onChange={(e) => setSearchInput(e.target.value)}
+            onChange={(e) => {
+              const next = e.target.value;
+              setSearchInput(next);
+              if (next.trim() === '') {
+                updateParams({ keyword: '', pageNo: 0 });
+              }
+            }}
             placeholder="Search titles…"
             className="w-full rounded-lg border border-slate-300 px-3 py-2 text-sm outline-none focus:border-emerald-500"
           />
