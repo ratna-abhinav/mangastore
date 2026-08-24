@@ -4,9 +4,12 @@ import com.example.shoppingdotcom.model.Category;
 import com.example.shoppingdotcom.model.Product;
 import com.example.shoppingdotcom.repository.CategoryRepository;
 import com.example.shoppingdotcom.repository.ProductRepository;
+import com.example.shoppingdotcom.service.EmbeddingService;
 import com.example.shoppingdotcom.service.NeonStorageService;
 import com.example.shoppingdotcom.service.ProductService;
 import com.example.shoppingdotcom.util.AppConstants;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.core.io.ClassPathResource;
 import org.springframework.data.domain.Page;
@@ -25,10 +28,15 @@ import java.nio.file.Path;
 import java.nio.file.Paths;
 import java.nio.file.StandardCopyOption;
 import java.util.ArrayList;
+import java.util.Arrays;
 import java.util.List;
+import java.util.Locale;
+import java.util.stream.Collectors;
 
 @Service
 public class ProductServiceImpl implements ProductService {
+
+    private static final Logger log = LoggerFactory.getLogger(ProductServiceImpl.class);
 
     @Autowired
     private ProductRepository productRepository;
@@ -39,9 +47,14 @@ public class ProductServiceImpl implements ProductService {
     @Autowired
     private NeonStorageService neonStorageService;
 
+    @Autowired
+    private EmbeddingService embeddingService;
+
     @Override
     public Product saveProduct(Product product) {
-        return productRepository.save(product);
+        Product saved = productRepository.save(product);
+        queueEmbedding(saved);
+        return saved;
     }
 
     @Override
@@ -101,11 +114,12 @@ public class ProductServiceImpl implements ProductService {
                 try {
                     String imageUploadUrl = neonStorageService.uploadFile("products", image);
                     updatedProduct.setImage(imageUploadUrl);
-                    productRepository.save(updatedProduct);
+                    updatedProduct = productRepository.save(updatedProduct);
                 } catch (Exception e) {
                     e.printStackTrace();
                 }
             }
+            queueEmbedding(updatedProduct);
             return product;
         }
         return null;
@@ -135,14 +149,73 @@ public class ProductServiceImpl implements ProductService {
 
     @Override
     public Page<Product> searchProductPagination(Integer pageNo, Integer pageSize, String keyword) {
-        Pageable pageable = PageRequest.of(pageNo, pageSize);
-        return productRepository.findByIsActiveAndTitleContainingIgnoreCaseOrIsActiveAndCategoryContainingIgnoreCase(1, keyword, 1, keyword, pageable);
+        return searchHybrid(keyword, pageNo, pageSize, true);
     }
 
     @Override
     public Page<Product> searchProductAdminPagination(Integer pageNo, Integer pageSize, String keyword) {
-        Pageable pageable = PageRequest.of(pageNo, pageSize);
-        return productRepository.findByTitleContainingIgnoreCaseOrCategoryContainingIgnoreCase(keyword, keyword, pageable);
+        return searchHybrid(keyword, pageNo, pageSize, false);
+    }
+
+    private Page<Product> searchHybrid(String keyword, Integer pageNo, Integer pageSize, boolean activeOnly) {
+        long start = System.nanoTime();
+        String sanitized = sanitizeKeyword(keyword);
+        String tsQuery = buildPrefixTsQuery(sanitized);
+
+        String queryVec = null;
+        if (!sanitized.isEmpty() && embeddingService.isEnabled()) {
+            queryVec = embeddingService.embedAsVectorLiteral(sanitized);
+        }
+
+        log.info("Search q='{}' tsQuery='{}' semantic={} activeOnly={} page={} size={}",
+                sanitized, tsQuery, queryVec != null, activeOnly, pageNo, pageSize);
+
+        List<Product> content = activeOnly
+                ? productRepository.searchActiveHybrid(tsQuery, sanitized, queryVec, pageSize, (long) pageNo * pageSize)
+                : productRepository.searchAllHybrid(tsQuery, sanitized, queryVec, pageSize, (long) pageNo * pageSize);
+
+        long total = content.size();
+        if (!(pageNo == 0 && content.size() < pageSize)) {
+            total = activeOnly
+                    ? productRepository.countActiveHybrid(tsQuery, sanitized, queryVec)
+                    : productRepository.countAllHybrid(tsQuery, sanitized, queryVec);
+        }
+
+        log.info("Search q='{}' neon returned rows={} total={} took {}ms",
+                sanitized, content.size(), total, elapsedMs(start));
+        return new PageImpl<>(content, PageRequest.of(pageNo, pageSize), total);
+    }
+
+    private void queueEmbedding(Product product) {
+        if (product == null || product.getId() == null || !embeddingService.isEnabled()) {
+            return;
+        }
+        String text = embeddingService.productText(product.getTitle(), product.getDescription(), product.getCategory());
+        embeddingService.embedProduct(product.getId(), text);
+    }
+
+    private String sanitizeKeyword(String keyword) {
+        if (ObjectUtils.isEmpty(keyword)) {
+            return "";
+        }
+        return keyword.trim().toLowerCase(Locale.ROOT)
+                .replaceAll("[^a-z0-9 ]+", "")
+                .replaceAll("\\s+", " ")
+                .trim();
+    }
+
+    private String buildPrefixTsQuery(String sanitized) {
+        if (sanitized.isEmpty()) {
+            return null;
+        }
+        return Arrays.stream(sanitized.split(" "))
+                .filter(token -> !token.isEmpty())
+                .map(token -> token + ":*")
+                .collect(Collectors.joining(" & "));
+    }
+
+    private static long elapsedMs(long startNanos) {
+        return (System.nanoTime() - startNanos) / 1_000_000;
     }
 
 

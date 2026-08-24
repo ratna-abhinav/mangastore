@@ -19,4 +19,15 @@ public class AsyncConfig {
         executor.initialize();
         return executor;
     }
+
+    @Bean(name = "embeddingExecutor")
+    public ThreadPoolTaskExecutor embeddingExecutor() {
+        ThreadPoolTaskExecutor executor = new ThreadPoolTaskExecutor();
+        executor.setCorePoolSize(1);
+        executor.setMaxPoolSize(2);
+        executor.setQueueCapacity(50);
+        executor.setThreadNamePrefix("embed-");
+        executor.initialize();
+        return executor;
+    }
 }
