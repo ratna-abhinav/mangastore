@@ -101,6 +101,23 @@ class SearchRateLimiterTest {
     }
 
     @Test
+    void identityDeniedRequestsDoNotConsumeGlobalBudget() {
+        Authentication spammer = anonymous();
+        assertThat(limiter.tryAcquireSemantic(spammer, "spam-session")).isTrue();
+        assertThat(limiter.tryAcquireSemantic(spammer, "spam-session")).isTrue();
+        assertThat(limiter.tryAcquireSemantic(spammer, "spam-session")).isFalse();
+        assertThat(limiter.tryAcquireSemantic(spammer, "spam-session")).isFalse();
+
+        int freshAccepted = 0;
+        for (int i = 0; i < 9; i++) {
+            if (limiter.tryAcquireSemantic(anonymous(), "innocent-" + i)) {
+                freshAccepted++;
+            }
+        }
+        assertThat(freshAccepted).isEqualTo(8);
+    }
+
+    @Test
     void globalBreakerTripsThenResetsNextUtcDay() {
         Authentication anon = anonymous();
         int accepted = 0;
