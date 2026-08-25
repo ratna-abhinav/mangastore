@@ -2,7 +2,7 @@
 
 **MangaStore** is your destination for manga, Korean manhwas, and Chinese donghuas — browse curated genres, fill your cart, place orders, and manage the whole storefront from a built-in admin dashboard.
 
-🌐 **Live**: deployed on [Render](https://render.com) as a single Docker image.
+🌐 **Live**: deployed on Render as a single Docker image — **[https://mangastore-v1.onrender.com](https://mangastore-v1.onrender.com/)**
 
 ![Stack](https://img.shields.io/badge/frontend-React%20%2B%20Vite%20%2B%20Tailwind-61DAFB?logo=react)
 ![Stack](https://img.shields.io/badge/backend-Spring%20Boot%203%20(Java%2017)-6DB33F?logo=springboot)
@@ -29,6 +29,19 @@ Thymeleaf          ❌ removed — replaced entirely by the React SPA
 ```
 
 The frontend build output is packaged *into* the Spring Boot jar, so production runs as one service: pages come from the SPA, data from `/api/**`, auth from session cookies.
+
+## 🚢 Deployment
+
+Hosted on [Render](https://render.com) — **[mangastore-v1.onrender.com](https://mangastore-v1.onrender.com/)**
+
+- **Runtime**: Docker (`Dockerfile` at repo root builds backend + frontend into one image; `render.yaml` blueprint included)
+- **Region**: Ohio (US East), co-located with the Neon database for low-latency queries
+- **Health check**: `GET /api/catalog/home`
+- **Environment variables** are configured in the Render dashboard (never committed): `DATASOURCE_URL`, `DB_USER`, `DB_PASSWORD`, `AWS_*` + `NEON_BUCKET` (image storage), `SENDER_EMAIL`, `APP_PASSWORD`, `GEMINI_API_KEY` (semantic search)
+- On boot the app creates its search schema (pgvector / pg_trgm extensions, indexes) and backfills embeddings for any products missing them
+- Free-tier note: the service spins down after ~15 min idle; the first visit afterwards takes up to ~60s to wake
+
+Search internals (hybrid FTS + trigram + semantic): see [docs/search-architecture.md](docs/search-architecture.md)
 
 ## 🚀 Run locally
 
