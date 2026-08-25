@@ -7,6 +7,7 @@ import com.example.shoppingdotcom.repository.ProductRepository;
 import com.example.shoppingdotcom.service.EmbeddingService;
 import com.example.shoppingdotcom.service.NeonStorageService;
 import com.example.shoppingdotcom.service.ProductService;
+import com.example.shoppingdotcom.service.SearchRateLimiter;
 import com.example.shoppingdotcom.util.AppConstants;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -17,8 +18,11 @@ import org.springframework.data.domain.PageImpl;
 import org.springframework.data.domain.PageRequest;
 import org.springframework.data.domain.Pageable;
 import org.springframework.data.domain.Sort;
+import org.springframework.security.core.Authentication;
+import org.springframework.security.core.context.SecurityContextHolder;
 import org.springframework.stereotype.Service;
 import org.springframework.util.ObjectUtils;
+import org.springframework.web.context.request.RequestContextHolder;
 import org.springframework.web.multipart.MultipartFile;
 
 import java.io.File;
@@ -49,6 +53,9 @@ public class ProductServiceImpl implements ProductService {
 
     @Autowired
     private EmbeddingService embeddingService;
+
+    @Autowired
+    private SearchRateLimiter searchRateLimiter;
 
     @Override
     public Product saveProduct(Product product) {
@@ -164,7 +171,13 @@ public class ProductServiceImpl implements ProductService {
 
         String queryVec = null;
         if (!sanitized.isEmpty() && embeddingService.isEnabled()) {
-            queryVec = embeddingService.embedQueryAsVectorLiteral(sanitized);
+            Authentication authentication = SecurityContextHolder.getContext().getAuthentication();
+            String sessionId = RequestContextHolder.currentRequestAttributes().getSessionId();
+            if (searchRateLimiter.tryAcquireSemantic(authentication, sessionId)) {
+                queryVec = embeddingService.embedQueryAsVectorLiteral(sanitized);
+            } else {
+                log.warn("Search q='{}' semantic quota exhausted; serving keyword-only results", sanitized);
+            }
         }
 
         log.info("Search q='{}' tsQuery='{}' semantic={} activeOnly={} page={} size={}",
