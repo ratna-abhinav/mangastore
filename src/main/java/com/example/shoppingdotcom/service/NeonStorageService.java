@@ -71,6 +71,28 @@ public class NeonStorageService {
         return publicUrl(key);
     }
 
+    public String uploadBytes(String folder, byte[] bytes, String contentType) throws IOException {
+        if (bytes == null || bytes.length == 0) {
+            throw new IllegalArgumentException("Bytes are empty");
+        }
+        String extension = ".jpg";
+        if (contentType != null && contentType.toLowerCase(Locale.ROOT).contains("png")) {
+            extension = ".png";
+        } else if (contentType != null && contentType.toLowerCase(Locale.ROOT).contains("webp")) {
+            extension = ".webp";
+        }
+        String key = sanitizeKey(folder) + "/" + UUID.randomUUID() + extension;
+        s3Client.putObject(
+                software.amazon.awssdk.services.s3.model.PutObjectRequest.builder()
+                        .bucket(bucketName)
+                        .key(key)
+                        .contentType(contentType != null ? contentType : "image/jpeg")
+                        .cacheControl("public, max-age=604800")
+                        .build(),
+                RequestBody.fromBytes(bytes));
+        return publicUrl(key);
+    }
+
     public String publicUrl(String key) {
         return String.format("%s/%s/%s", endpoint.replaceAll("/+$", ""), bucketName, key);
     }

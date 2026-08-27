@@ -11,6 +11,10 @@ export default function ProductCard({ product }: { product: Product }) {
           alt={product.title}
           className="h-44 w-full object-cover"
           referrerPolicy="no-referrer"
+          onError={(e) => {
+            e.currentTarget.onerror = null;
+            e.currentTarget.src = "https://br-wispy-block-a5yj4c8a.storage.c-1.us-east-2.aws.neon.tech/media-storage/defaults/default-image.png";
+          }}
         />
       </Link>
       <div className="flex flex-1 flex-col gap-2 p-4">
