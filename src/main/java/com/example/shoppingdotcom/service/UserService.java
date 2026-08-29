@@ -33,4 +33,10 @@ public interface UserService {
     Users saveAdmin(Users user);
 
     Boolean existsEmail(String email);
+
+    Users verifyEmail(String token);
+
+    Users issueVerificationToken(String email);
+
+    Users createOrGetOAuthUser(String email, String name, String picture);
 }

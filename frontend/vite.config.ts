@@ -15,6 +15,7 @@ export default defineConfig({
       '/logout': backend,
       '/signin': backend,
       '/register': backend,
+      '/oauth2': backend,
     },
   },
   build: {

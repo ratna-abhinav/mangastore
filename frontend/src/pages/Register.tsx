@@ -1,17 +1,16 @@
 import { useState } from 'react';
 import { Link, useNavigate } from 'react-router-dom';
 import { register } from '../api/auth';
-import { useToast } from '../components/Toast';
 
 const inputCls =
   'w-full rounded-lg border border-slate-300 px-3 py-2 text-sm outline-none focus:border-emerald-500';
 const labelCls = 'mb-1 block text-sm font-medium text-slate-700';
 
 export default function Register() {
-  const toast = useToast();
   const navigate = useNavigate();
   const [busy, setBusy] = useState(false);
   const [error, setError] = useState<string | null>(null);
+  const [done, setDone] = useState<string | null>(null);
   const [form, setForm] = useState({
     name: '',
     email: '',
@@ -54,9 +53,8 @@ export default function Register() {
       fd.append('password', form.password);
       if (img) fd.append('img', img);
 
-      await register(fd);
-      toast('success', 'Account created! Please sign in.');
-      navigate('/signin');
+      const result = await register(fd);
+      setDone(result.message || 'Account created! Please sign in.');
     } catch (err) {
       if (err && typeof err === 'object' && 'body' in err) {
         const body = (err as { body?: { error?: string } }).body;
@@ -68,6 +66,24 @@ export default function Register() {
       setBusy(false);
     }
   };
+
+  if (done) {
+    return (
+      <div className="mx-auto max-w-md rounded-2xl border border-slate-200 bg-white p-8 text-center shadow-sm">
+        <div className="mx-auto flex h-12 w-12 items-center justify-center rounded-full bg-emerald-100 text-2xl">
+          ✅
+        </div>
+        <h1 className="mt-4 text-xl font-bold text-slate-900">Almost there!</h1>
+        <p className="mt-2 text-sm text-slate-600">{done}</p>
+        <button
+          onClick={() => navigate('/signin')}
+          className="mt-6 w-full rounded-lg bg-emerald-600 py-2.5 font-semibold text-white hover:bg-emerald-500"
+        >
+          Go to sign in
+        </button>
+      </div>
+    );
+  }
 
   return (
     <div className="mx-auto max-w-2xl rounded-2xl border border-slate-200 bg-white p-8 shadow-sm">

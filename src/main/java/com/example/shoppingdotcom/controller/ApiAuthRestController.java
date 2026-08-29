@@ -1,5 +1,6 @@
 package com.example.shoppingdotcom.controller;
 
+import com.example.shoppingdotcom.config.SignupProperties;
 import com.example.shoppingdotcom.model.Users;
 import com.example.shoppingdotcom.service.NeonStorageService;
 import com.example.shoppingdotcom.service.UserService;
@@ -37,6 +38,9 @@ public class ApiAuthRestController {
     private CommonUtils commonUtils;
 
     @Autowired
+    private SignupProperties signupProperties;
+
+    @Autowired
     private org.springframework.security.crypto.password.PasswordEncoder passwordEncoder;
 
     @PostMapping(value = "/register", consumes = MediaType.MULTIPART_FORM_DATA_VALUE)
@@ -50,7 +54,8 @@ public class ApiAuthRestController {
             @RequestParam(required = false) String pincode,
             @RequestParam String password,
             @RequestParam(required = false) MultipartFile img,
-            Principal principal) throws IOException {
+            Principal principal,
+            HttpServletRequest request) throws IOException {
 
         if (userService.existsEmail(email)) {
             return ResponseEntity.status(HttpStatus.CONFLICT)
@@ -87,7 +92,62 @@ public class ApiAuthRestController {
             }
         }
 
-        return ResponseEntity.status(HttpStatus.CREATED).body(Map.of("success", true));
+        String message;
+        if (signupProperties.isEmailVerification() && user.getVerificationToken() != null) {
+            try {
+                String url = CommonUtils.generateUrl(request) + "/verify-email?token=" + user.getVerificationToken();
+                commonUtils.sendMailForEmailVerification(url, email, user.getName());
+                message = "Account created !! Please verify your email to activate your account.";
+            } catch (Exception e) {
+                e.printStackTrace();
+                message = "Account created !! Could not send the verification email. Use the resend option on the sign-in page.";
+            }
+        } else {
+            message = "Account created !! Your account is pending admin approval. Please sign in after being approved.";
+        }
+
+        return ResponseEntity.status(HttpStatus.CREATED).body(Map.of("success", true, "message", message));
+    }
+
+    @GetMapping("/config")
+    public ResponseEntity<Map<String, Object>> config() {
+        return ResponseEntity.ok(Map.of(
+                "activationMode", signupProperties.getActivationMode(),
+                "emailVerification", signupProperties.isEmailVerification(),
+                "adminApproval", signupProperties.isAdminApproval(),
+                "googleEnabled", signupProperties.isGoogleEnabled()));
+    }
+
+    @PostMapping("/verify-email")
+    public ResponseEntity<Map<String, Object>> verifyEmail(@RequestBody Map<String, String> body) {
+        String token = body.get("token");
+        if (token == null || token.isBlank()) {
+            return ResponseEntity.badRequest().body(Map.of("error", "Missing verification token !!"));
+        }
+        Users verified = userService.verifyEmail(token);
+        if (verified == null) {
+            return ResponseEntity.badRequest().body(Map.of("error", "Verification link is invalid or expired !!"));
+        }
+        return ResponseEntity.ok(Map.of("success", true, "message", "Email verified !! You can now sign in."));
+    }
+
+    @PostMapping("/resend-verification")
+    public ResponseEntity<Map<String, Object>> resendVerification(@RequestBody Map<String, String> body,
+                                                                  HttpServletRequest request) {
+        String email = body.get("email");
+        if (email == null || email.isBlank()) {
+            return ResponseEntity.badRequest().body(Map.of("error", "Email is required !!"));
+        }
+        Users user = userService.issueVerificationToken(email.trim());
+        if (user != null && signupProperties.isEmailVerification()) {
+            try {
+                String url = CommonUtils.generateUrl(request) + "/verify-email?token=" + user.getVerificationToken();
+                commonUtils.sendMailForEmailVerification(url, user.getEmail(), user.getName());
+            } catch (Exception e) {
+                e.printStackTrace();
+            }
+        }
+        return ResponseEntity.ok(Map.of("message", "If an account exists for this email, a verification email has been sent !!"));
     }
 
     @PostMapping("/forgot-password")
@@ -98,6 +158,12 @@ public class ApiAuthRestController {
         Users userByEmail = userService.getUserByEmail(email);
         if (ObjectUtils.isEmpty(userByEmail)) {
             return ResponseEntity.badRequest().body(Map.of("error", "Invalid email !!"));
+        }
+        if (userByEmail.getIsEnable() == 0) {
+            return ResponseEntity.badRequest().body(Map.of("error", "Account is not active. Please verify or contact support !!"));
+        }
+        if (userByEmail.getPassword() == null || userByEmail.getPassword().isBlank()) {
+            return ResponseEntity.badRequest().body(Map.of("error", "This account uses Google sign-in and has no password !!"));
         }
 
         String resetToken = java.util.UUID.randomUUID().toString();
