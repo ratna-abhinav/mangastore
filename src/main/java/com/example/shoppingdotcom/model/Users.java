@@ -49,4 +49,9 @@ public class Users {
     private Date lockTime;
 
     private String resetToken;
+
+    private String verificationToken;
+
+    @Column(columnDefinition = "TIMESTAMP")
+    private Date verificationTokenExpiry;
 }

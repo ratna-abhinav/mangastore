@@ -1,5 +1,6 @@
 package com.example.shoppingdotcom.service.impl;
 
+import com.example.shoppingdotcom.config.SignupProperties;
 import com.example.shoppingdotcom.model.Users;
 import com.example.shoppingdotcom.repository.UserRepository;
 import com.example.shoppingdotcom.service.UserService;
@@ -9,8 +10,10 @@ import jakarta.servlet.http.HttpServletRequest;
 import jakarta.servlet.http.HttpServletResponse;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.http.MediaType;
+import org.springframework.security.authentication.DisabledException;
 import org.springframework.security.authentication.LockedException;
 import org.springframework.security.core.AuthenticationException;
+import org.springframework.security.oauth2.core.OAuth2AuthenticationException;
 import org.springframework.security.web.authentication.SimpleUrlAuthenticationFailureHandler;
 import org.springframework.stereotype.Component;
 import org.springframework.util.ObjectUtils;
@@ -26,35 +29,50 @@ public class AuthFailureHandlerImpl extends SimpleUrlAuthenticationFailureHandle
     @Autowired
     private UserService userService;
 
+    @Autowired
+    private SignupProperties signupProperties;
+
     @Override
     public void onAuthenticationFailure(HttpServletRequest request, HttpServletResponse response,
                                         AuthenticationException exception) throws IOException, ServletException {
 
-        String email = request.getParameter("username");
-        Users user = userRepository.findByEmail(email);
+        if (exception instanceof OAuth2AuthenticationException oauthEx
+                && oauthEx.getCause() instanceof DisabledException disabledCause) {
+            exception = disabledCause;
+        }
 
-        if (ObjectUtils.isEmpty(user)) {
+        String email = request.getParameter("username");
+        Users user = (!ObjectUtils.isEmpty(email)) ? userRepository.findByEmail(email) : null;
+
+        if (exception instanceof DisabledException) {
+            if (user != null && user.getVerificationToken() != null) {
+                exception = new DisabledException("Please verify your email first.");
+            } else if (signupProperties.isAdminApproval() || user == null) {
+                exception = new DisabledException("Your account is inactive. Please wait for admin approval.");
+            } else {
+                exception = new DisabledException("Your account has been disabled by the store.");
+            }
+        } else if (ObjectUtils.isEmpty(user)) {
             exception = new LockedException("Invalid Email!");
-        } else {
-            if (user.getIsEnable()==1) {
-                if (user.getAccountNonLocked()==1) {
-                    if (user.getFailedAttempt() < AppConstants.ATTEMPT_TIME) {
-                        userService.increaseFailedAttempt(user);
-                    } else {
-                        userService.userAccountLock(user);
-                        exception = new LockedException("Your account is locked !! No of failed attempts exceeded the limit");
-                    }
+        } else if (user.getIsEnable() == 1) {
+            if (user.getAccountNonLocked() == 1) {
+                if (user.getFailedAttempt() < AppConstants.ATTEMPT_TIME) {
+                    userService.increaseFailedAttempt(user);
                 } else {
-                    if (userService.unlockAccountTimeExpired(user)) {
-                        exception = new LockedException("Your account is unlocked !! Please try to login again");
-                    } else {
-                        exception = new LockedException("Your account is locked !! Please try after sometime");
-                    }
+                    userService.userAccountLock(user);
+                    exception = new LockedException("Your account is locked !! No of failed attempts exceeded the limit");
                 }
             } else {
-                exception = new LockedException("Your account is Inactive!");
+                if (userService.unlockAccountTimeExpired(user)) {
+                    exception = new LockedException("Your account is unlocked !! Please try to login again");
+                } else {
+                    exception = new LockedException("Your account is locked !! Please try after sometime");
+                }
             }
+        } else {
+            exception = new DisabledException("Your account is inactive. Please contact support.");
         }
+
         String accept = request.getHeader("Accept");
         if (accept != null && accept.contains("application/json")) {
             response.setStatus(HttpServletResponse.SC_UNAUTHORIZED);
