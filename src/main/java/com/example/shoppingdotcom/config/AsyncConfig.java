@@ -5,9 +5,16 @@ import org.springframework.context.annotation.Configuration;
 import org.springframework.scheduling.annotation.EnableAsync;
 import org.springframework.scheduling.concurrent.ThreadPoolTaskExecutor;
 
+import java.time.Clock;
+
 @Configuration
 @EnableAsync
 public class AsyncConfig {
+
+    @Bean
+    public Clock clock() {
+        return Clock.systemUTC();
+    }
 
     @Bean(name = "mailExecutor")
     public ThreadPoolTaskExecutor mailExecutor() {

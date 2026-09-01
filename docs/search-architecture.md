@@ -110,6 +110,7 @@ Blended ranking: `ts_rank*2 + greatest(trigram similarity) + (1 - cosine distanc
 |----------|----------|
 | Blank / punctuation-only input | Browse path or guarded empty result - **no Gemini call** |
 | Gemini down / key missing | Signal 4 silently dropped; literal signals still return results (`semantic=false` logged) |
+| Semantic quota exhausted | `SearchRateLimiter` skips signal 4 for that identity; keyword results still served. Limits (per minute/day): anonymous 5/30, logged-in 10/75, global circuit breaker 200/day; admins exempt |
 | Repeat search | Served from react-query cache - zero server hops |
 | New product not yet embedded | Found by signals 1-3 immediately; semantic after async embed lands |
 | Fresh database | Schema auto-created at boot; backfill embeds existing rows once |
