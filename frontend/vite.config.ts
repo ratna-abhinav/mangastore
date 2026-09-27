@@ -13,8 +13,7 @@ export default defineConfig({
       '/img': backend,
       '/login': backend,
       '/logout': backend,
-      '/signin': backend,
-      '/register': backend,
+      '/oauth2': backend,
     },
   },
   build: {

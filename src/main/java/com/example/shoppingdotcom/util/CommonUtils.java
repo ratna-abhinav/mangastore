@@ -53,6 +53,29 @@ public class CommonUtils {
         return siteUrl.replace(request.getServletPath(), "");
     }
 
+    public Boolean sendMailForEmailVerification(String url, String recipientEmail, String name)
+            throws UnsupportedEncodingException, MessagingException {
+
+        MimeMessage message = mailSender.createMimeMessage();
+        MimeMessageHelper helper = new MimeMessageHelper(message);
+
+        helper.setFrom("testnlocal@gmail.com", "Manga Store");
+        helper.setTo(recipientEmail);
+
+        String content = "<p>Hello " + name + ",</p>" +
+                "<p>Thanks for creating a Manga Store account.</p>" +
+                "<p>Please click the link below to verify your email address (valid for 30 minutes):</p>" +
+                "<p><a href=\"" + url + "\">Verify my email</a></p>" +
+                "<p>If you did not create an account, you can safely ignore this email.</p>" +
+                "<p>Best regards,</p>" +
+                "<p><strong>Manga Store Team</strong></p>";
+
+        helper.setSubject("Manga Store - Verify your email");
+        helper.setText(content, true);
+        mailSender.send(message);
+        return true;
+    }
+
     @Async("mailExecutor")
     public void sendMailForProductOrderAsync(ProductOrder order, String status) {
         try {

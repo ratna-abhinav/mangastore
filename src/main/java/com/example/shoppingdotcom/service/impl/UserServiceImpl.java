@@ -1,5 +1,6 @@
 package com.example.shoppingdotcom.service.impl;
 
+import com.example.shoppingdotcom.config.SignupProperties;
 import com.example.shoppingdotcom.model.Users;
 import com.example.shoppingdotcom.repository.UserRepository;
 import com.example.shoppingdotcom.service.NeonStorageService;
@@ -21,6 +22,7 @@ import java.nio.file.StandardCopyOption;
 import java.util.Date;
 import java.util.List;
 import java.util.Optional;
+import java.util.UUID;
 
 @Service
 public class UserServiceImpl implements UserService {
@@ -34,15 +36,70 @@ public class UserServiceImpl implements UserService {
     @Autowired
     private NeonStorageService neonStorageService;
 
+    @Autowired
+    private SignupProperties signupProperties;
+
     @Override
     public Users saveUser(Users user) {
         user.setRole("ROLE_USER");
-        user.setIsEnable(1);
+        user.setIsEnable(0);
         user.setAccountNonLocked(1);
         user.setFailedAttempt(0);
         String encodePassword = passwordEncoder.encode(user.getPassword());
         user.setPassword(encodePassword);
+        if (signupProperties.isEmailVerification()) {
+            generateVerificationToken(user);
+        }
         return userRepository.save(user);
+    }
+
+    @Override
+    public Users verifyEmail(String token) {
+        Users user = userRepository.findByVerificationToken(token);
+        if (user == null) {
+            return null;
+        }
+        Date expiry = user.getVerificationTokenExpiry();
+        if (expiry == null || expiry.getTime() < System.currentTimeMillis()) {
+            return null;
+        }
+        user.setIsEnable(1);
+        user.setVerificationToken(null);
+        user.setVerificationTokenExpiry(null);
+        return userRepository.save(user);
+    }
+
+    @Override
+    public Users issueVerificationToken(String email) {
+        Users user = userRepository.findByEmail(email);
+        if (user == null || user.getIsEnable() == 1) {
+            return null;
+        }
+        generateVerificationToken(user);
+        return userRepository.save(user);
+    }
+
+    @Override
+    public Users createOrGetOAuthUser(String email, String name, String picture) {
+        Users user = userRepository.findByEmail(email);
+        if (user != null) {
+            return user;
+        }
+        Users fresh = new Users();
+        fresh.setName(name);
+        fresh.setEmail(email);
+        fresh.setProfileImage(picture);
+        fresh.setRole("ROLE_USER");
+        fresh.setIsEnable(signupProperties.isEmailVerification() ? 1 : 0);
+        fresh.setAccountNonLocked(1);
+        fresh.setFailedAttempt(0);
+        return userRepository.save(fresh);
+    }
+
+    private void generateVerificationToken(Users user) {
+        user.setVerificationToken(UUID.randomUUID().toString());
+        user.setVerificationTokenExpiry(
+                new Date(System.currentTimeMillis() + signupProperties.getVerificationTokenTtlMillis()));
     }
 
     @Override

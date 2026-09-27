@@ -27,7 +27,12 @@ export async function login(email: string, password: string): Promise<LoginResul
   });
 }
 
-export async function register(formData: FormData): Promise<void> {
+export interface RegisterResult {
+  success: boolean;
+  message: string;
+}
+
+export async function register(formData: FormData): Promise<RegisterResult> {
   const res = await fetch('/api/auth/register', {
     method: 'POST',
     credentials: 'include',
@@ -37,6 +42,32 @@ export async function register(formData: FormData): Promise<void> {
     const body = await res.json().catch(() => null);
     throw new ApiError(res.status, body);
   }
+  return (await res.json()) as RegisterResult;
+}
+
+export interface AuthConfig {
+  activationMode: string;
+  emailVerification: boolean;
+  adminApproval: boolean;
+  googleEnabled: boolean;
+}
+
+export function fetchAuthConfig(): Promise<AuthConfig> {
+  return api<AuthConfig>('/api/auth/config');
+}
+
+export async function verifyEmail(token: string): Promise<{ success: boolean; message: string }> {
+  return api<{ success: boolean; message: string }>('/api/auth/verify-email', {
+    method: 'POST',
+    body: JSON.stringify({ token }),
+  });
+}
+
+export async function resendVerification(email: string): Promise<{ message: string }> {
+  return api<{ message: string }>('/api/auth/resend-verification', {
+    method: 'POST',
+    body: JSON.stringify({ email }),
+  });
 }
 
 export async function forgotPassword(email: string): Promise<{ message: string }> {

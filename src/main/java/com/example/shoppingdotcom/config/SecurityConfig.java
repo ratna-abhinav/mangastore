@@ -28,6 +28,9 @@ public class SecurityConfig {
     @Lazy
     private AuthenticationFailureHandler authenticationFailureHandler;
 
+    @Autowired
+    private SignupProperties signupProperties;
+
     @Bean
     public PasswordEncoder passwordEncoder() {
         return new BCryptPasswordEncoder();
@@ -44,6 +47,11 @@ public class SecurityConfig {
         authenticationProvider.setUserDetailsService(userDetailsService());
         authenticationProvider.setPasswordEncoder(passwordEncoder());
         return authenticationProvider;
+    }
+
+    @Bean
+    public CustomOAuth2UserService customOAuth2UserService() {
+        return new CustomOAuth2UserService();
     }
 
     @Bean
@@ -69,6 +77,14 @@ public class SecurityConfig {
                         .loginProcessingUrl("/login")
                         .failureHandler(authenticationFailureHandler)
                         .successHandler(authenticationSuccessHandler));
+
+        if (signupProperties.isGoogleEnabled()) {
+            http.oauth2Login(oauth -> oauth
+                    .loginPage("/signin")
+                    .successHandler(authenticationSuccessHandler)
+                    .failureHandler(authenticationFailureHandler)
+                    .userInfoEndpoint(userInfo -> userInfo.oidcUserService(customOAuth2UserService())));
+        }
         return http.build();
     }
 }

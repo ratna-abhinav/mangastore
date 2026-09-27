@@ -1,17 +1,27 @@
-import { useState } from 'react';
+import { useEffect, useState } from 'react';
 import { Link, useNavigate } from 'react-router-dom';
-import { register } from '../api/auth';
-import { useToast } from '../components/Toast';
+import { fetchAuthConfig, register, type AuthConfig } from '../api/auth';
 
 const inputCls =
   'w-full rounded-lg border border-slate-300 px-3 py-2 text-sm outline-none focus:border-emerald-500';
 const labelCls = 'mb-1 block text-sm font-medium text-slate-700';
 
 export default function Register() {
-  const toast = useToast();
   const navigate = useNavigate();
   const [busy, setBusy] = useState(false);
   const [error, setError] = useState<string | null>(null);
+  const [done, setDone] = useState<string | null>(null);
+  const [config, setConfig] = useState<AuthConfig | null>(null);
+
+  useEffect(() => {
+    void fetchAuthConfig()
+      .then(setConfig)
+      .catch(() => setConfig(null));
+  }, []);
+
+  const googleLogin = () => {
+    window.location.href = '/oauth2/authorization/google';
+  };
   const [form, setForm] = useState({
     name: '',
     email: '',
@@ -54,9 +64,8 @@ export default function Register() {
       fd.append('password', form.password);
       if (img) fd.append('img', img);
 
-      await register(fd);
-      toast('success', 'Account created! Please sign in.');
-      navigate('/signin');
+      const result = await register(fd);
+      setDone(result.message || 'Account created! Please sign in.');
     } catch (err) {
       if (err && typeof err === 'object' && 'body' in err) {
         const body = (err as { body?: { error?: string } }).body;
@@ -69,10 +78,46 @@ export default function Register() {
     }
   };
 
+  if (done) {
+    return (
+      <div className="mx-auto max-w-md rounded-2xl border border-slate-200 bg-white p-8 text-center shadow-sm">
+        <div className="mx-auto flex h-12 w-12 items-center justify-center rounded-full bg-emerald-100 text-2xl">
+          ✅
+        </div>
+        <h1 className="mt-4 text-xl font-bold text-slate-900">Almost there!</h1>
+        <p className="mt-2 text-sm text-slate-600">{done}</p>
+        <button
+          onClick={() => navigate('/signin')}
+          className="mt-6 w-full rounded-lg bg-emerald-600 py-2.5 font-semibold text-white hover:bg-emerald-500"
+        >
+          Go to sign in
+        </button>
+      </div>
+    );
+  }
+
   return (
     <div className="mx-auto max-w-2xl rounded-2xl border border-slate-200 bg-white p-8 shadow-sm">
       <h1 className="text-2xl font-bold text-slate-900">Create your account</h1>
       <p className="mt-1 text-sm text-slate-500">Join MangaStore in under a minute</p>
+
+      {config?.googleEnabled && (
+        <>
+          <button
+            type="button"
+            onClick={googleLogin}
+            className="mt-4 flex w-full items-center justify-center gap-3 rounded-lg border border-slate-300 bg-white px-4 py-2.5 text-sm font-medium text-slate-700 hover:bg-slate-50"
+          >
+            <GoogleIcon />
+            Continue with Google
+          </button>
+          <div className="my-4 flex items-center gap-3">
+            <div className="h-px flex-1 bg-slate-200" />
+            <span className="text-xs text-slate-400">or</span>
+            <div className="h-px flex-1 bg-slate-200" />
+          </div>
+        </>
+      )}
 
       {error && (
         <div className="mt-4 rounded-lg bg-red-50 px-4 py-3 text-sm text-red-600" role="alert">
@@ -144,5 +189,28 @@ export default function Register() {
         </Link>
       </p>
     </div>
+  );
+}
+
+function GoogleIcon() {
+  return (
+    <svg className="h-5 w-5" viewBox="0 0 48 48" aria-hidden="true">
+      <path
+        fill="#FFC107"
+        d="M43.611 20.083H42V20H24v8h11.303c-1.649 4.657-6.08 8-11.303 8-6.627 0-12-5.373-12-12s5.373-12 12-12c3.059 0 5.842 1.154 7.961 3.039l5.657-5.657C34.046 6.053 29.268 4 24 4 12.955 4 4 12.955 4 24s8.955 20 20 20 20-8.955 20-20c0-1.341-.138-2.65-.389-3.917z"
+      />
+      <path
+        fill="#FF3D00"
+        d="m6.306 14.691 6.571 4.819C14.655 15.108 18.961 12 24 12c3.059 0 5.842 1.154 7.961 3.039l5.657-5.657C34.046 6.053 29.268 4 24 4 16.318 4 9.656 8.337 6.306 14.691z"
+      />
+      <path
+        fill="#4CAF50"
+        d="M24 44c5.166 0 9.86-1.977 13.409-5.192l-6.19-5.238A11.91 11.91 0 0 1 24 36c-5.202 0-9.619-3.317-11.283-7.946l-6.522 5.025C9.505 39.556 16.227 44 24 44z"
+      />
+      <path
+        fill="#1976D2"
+        d="M43.611 20.083H42V20H24v8h11.303a12.04 12.04 0 0 1-4.087 5.571l.003-.002 6.19 5.238C36.971 39.205 44 34 44 24c0-1.341-.138-2.65-.389-3.917z"
+      />
+    </svg>
   );
 }
