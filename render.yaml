@@ -27,3 +27,13 @@ services:
         sync: false
       - key: GEMINI_API_KEY
         sync: false
+      - key: GOOGLE_ENABLED
+        value: true
+      - key: GOOGLE_CLIENT_ID
+        sync: false
+      - key: GOOGLE_CLIENT_SECRET
+        sync: false
+      - key: GOOGLE_REDIRECT_URI
+        value: https://mangastore-v1.onrender.com/login/oauth2/code/google
+      - key: SIGNUP_ACTIVATION_MODE
+        value: admin
