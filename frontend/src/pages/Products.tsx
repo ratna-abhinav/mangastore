@@ -1,8 +1,14 @@
 import { useState } from 'react';
 import { useSearchParams } from 'react-router-dom';
 import { keepPreviousData, useQuery } from '@tanstack/react-query';
+import { Filter, PackageSearch, Search, X } from 'lucide-react';
 import { fetchCategories, fetchProducts } from '../api/catalog';
 import ProductCard from '../components/ProductCard';
+import Pagination from '../components/ui/Pagination';
+import EmptyState from '../components/ui/EmptyState';
+import { SkeletonCard } from '../components/ui/Skeleton';
+import Button from '../components/ui/Button';
+import { Input, Select } from '../components/ui/Input';
 
 export default function Products() {
   const [searchParams, setSearchParams] = useSearchParams();
@@ -21,19 +27,36 @@ export default function Products() {
   const updateParams = (patch: Record<string, string | number | undefined>) => {
     const next = new URLSearchParams(searchParams);
     for (const [key, value] of Object.entries(patch)) {
-      if (value === undefined || value === '' || value === 0 && key === 'pageNo') {
-        next.delete(key);
-      } else {
-        next.set(key, String(value));
-      }
+      if (value === undefined || value === '' || (value === 0 && key === 'pageNo')) next.delete(key);
+      else next.set(key, String(value));
     }
     if (!('pageNo' in patch)) next.delete('pageNo');
     setSearchParams(next);
   };
 
+  const hasFilters = Boolean(keyword || category);
+
   return (
-    <div className="space-y-6">
-      <div className="flex flex-col gap-3 rounded-xl border border-slate-200 bg-white p-4 sm:flex-row sm:items-center">
+    <div className="space-y-7">
+      <header>
+        <p className="text-[11px] font-bold uppercase tracking-[0.18em] text-sakura-300">Catalogue</p>
+        <h1 className="mt-1.5 font-display text-3xl font-extrabold text-mist-50 sm:text-4xl">
+          {category ? (
+            <>
+              <span className="text-gradient">{category}</span>
+            </>
+          ) : keyword ? (
+            <>
+              Results for <span className="text-gradient">“{keyword}”</span>
+            </>
+          ) : (
+            <>All titles</>
+          )}
+        </h1>
+      </header>
+
+      {/* ------------------------------------------------------- filter bar */}
+      <div className="edge-light flex flex-col gap-3 rounded-2xl border border-ink-600/60 bg-ink-850/70 p-3.5 sm:flex-row sm:items-center">
         <form
           className="flex flex-1 gap-2"
           onSubmit={(e) => {
@@ -41,98 +64,117 @@ export default function Products() {
             updateParams({ keyword: searchInput.trim() });
           }}
         >
-          <input
-            value={searchInput}
-            onChange={(e) => {
-              const next = e.target.value;
-              setSearchInput(next);
-              if (next.trim() === '') {
-                updateParams({ keyword: '', pageNo: 0 });
-              }
-            }}
-            placeholder="Search titles…"
-            className="w-full rounded-lg border border-slate-300 px-3 py-2 text-sm outline-none focus:border-emerald-500"
-          />
-          <button type="submit" className="rounded-lg bg-emerald-600 px-4 py-2 text-sm font-medium text-white hover:bg-emerald-500">
+          <div className="relative flex-1">
+            <Search className="pointer-events-none absolute left-3.5 top-1/2 h-4 w-4 -translate-y-1/2 text-mist-500" />
+            <Input
+              value={searchInput}
+              onChange={(e) => {
+                const next = e.target.value;
+                setSearchInput(next);
+                if (next.trim() === '') updateParams({ keyword: '', pageNo: 0 });
+              }}
+              placeholder="Search titles…"
+              aria-label="Search titles"
+              className="pl-10"
+            />
+          </div>
+          <Button type="submit" variant="gradient">
             Search
-          </button>
-          {(keyword || category) && (
-            <button
+          </Button>
+          {hasFilters && (
+            <Button
               type="button"
+              variant="ghost"
               onClick={() => {
                 setSearchInput('');
                 setSearchParams({});
               }}
-              className="rounded-lg border border-slate-300 px-3 py-2 text-sm text-slate-600 hover:border-red-400 hover:text-red-500"
+              aria-label="Clear filters"
             >
-              Clear
-            </button>
+              <X className="h-4 w-4" />
+              <span className="hidden sm:inline">Clear</span>
+            </Button>
           )}
         </form>
 
-        <select
-          value={category}
-          onChange={(e) => updateParams({ category: e.target.value })}
-          className="rounded-lg border border-slate-300 px-3 py-2 text-sm outline-none focus:border-emerald-500"
-        >
-          <option value="">All genres</option>
-          {(categories.data ?? []).map((c) => (
-            <option key={c.id} value={c.name}>
-              {c.name}
-            </option>
-          ))}
-        </select>
+        <div className="relative sm:w-56">
+          <Filter className="pointer-events-none absolute left-3.5 top-1/2 h-4 w-4 -translate-y-1/2 text-mist-500" />
+          <Select
+            value={category}
+            onChange={(e) => updateParams({ category: e.target.value })}
+            aria-label="Filter by genre"
+            className="pl-10"
+          >
+            <option value="">All genres</option>
+            {(categories.data ?? []).map((c) => (
+              <option key={c.id} value={c.name}>
+                {c.name}
+              </option>
+            ))}
+          </Select>
+        </div>
       </div>
 
-      {(keyword || category) && (
-        <p className="text-sm text-slate-500">
-          Showing results
+      {hasFilters && products.data && (
+        <p className="text-sm text-mist-400">
+          {products.data.totalElements} {products.data.totalElements === 1 ? 'title' : 'titles'} found
           {keyword && (
             <>
-              {' '}for “<span className="font-medium text-slate-700">{keyword}</span>”
+              {' '}for “<span className="font-semibold text-mist-100">{keyword}</span>”
             </>
           )}
           {category && (
             <>
-              {' '}in <span className="font-medium text-emerald-600">{category}</span>
+              {' '}in <span className="font-semibold text-sakura-300">{category}</span>
             </>
           )}
-          {products.data ? <> · {products.data.totalElements} found</> : null}
         </p>
       )}
 
+      {/* ----------------------------------------------------------- results */}
       {products.isLoading ? (
-        <p className="py-16 text-center text-slate-500">Loading products…</p>
+        <div className="grid grid-cols-1 gap-5 sm:grid-cols-2 lg:grid-cols-4">
+          {[...Array(8)].map((_, i) => (
+            <SkeletonCard key={i} />
+          ))}
+        </div>
       ) : !products.data || products.data.content.length === 0 ? (
-        <p className="rounded-xl bg-white p-12 text-center text-slate-500">Currently, no products available!</p>
+        <EmptyState
+          icon={<PackageSearch className="h-7 w-7" />}
+          title={hasFilters ? 'No titles match that' : 'The shelf is empty'}
+          description={
+            hasFilters
+              ? 'Try a different keyword, or clear the filters to see everything we stock.'
+              : 'Nothing has been added to the catalogue yet.'
+          }
+          action={
+            hasFilters ? (
+              <Button
+                variant="outline"
+                onClick={() => {
+                  setSearchInput('');
+                  setSearchParams({});
+                }}
+              >
+                Clear filters
+              </Button>
+            ) : undefined
+          }
+        />
       ) : (
-        <div className="grid grid-cols-1 gap-4 sm:grid-cols-2 lg:grid-cols-4">
-          {products.data.content.map((p) => (
-            <ProductCard key={p.id} product={p} />
+        <div className="grid grid-cols-1 gap-5 sm:grid-cols-2 lg:grid-cols-4">
+          {products.data.content.map((p, i) => (
+            <ProductCard key={p.id} product={p} index={i} />
           ))}
         </div>
       )}
 
-      {products.data && products.data.totalPages > 1 && (
-        <div className="flex items-center justify-center gap-2 pt-2">
-          <button
-            disabled={products.data.first}
-            onClick={() => updateParams({ pageNo: pageNo - 1 })}
-            className="rounded-lg border border-slate-300 px-3 py-1.5 text-sm disabled:opacity-40"
-          >
-            ← Prev
-          </button>
-          <span className="px-2 text-sm text-slate-600">
-            Page {products.data.pageNo + 1} of {products.data.totalPages}
-          </span>
-          <button
-            disabled={products.data.last}
-            onClick={() => updateParams({ pageNo: pageNo + 1 })}
-            className="rounded-lg border border-slate-300 px-3 py-1.5 text-sm disabled:opacity-40"
-          >
-            Next →
-          </button>
-        </div>
+      {products.data && (
+        <Pagination
+          pageNo={products.data.pageNo}
+          totalPages={products.data.totalPages}
+          onChange={(p) => updateParams({ pageNo: p })}
+        />
       )}
     </div>
   );

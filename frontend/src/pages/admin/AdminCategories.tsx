@@ -1,18 +1,25 @@
 import { useState } from 'react';
 import { keepPreviousData, useQuery, useQueryClient } from '@tanstack/react-query';
-import {
-  deleteCategory,
-  fetchAdminCategories,
-  saveCategory,
-  updateCategory,
-} from '../../api/adminApi';
+import { FolderTree, Pencil, Plus, Save, Trash2, X } from 'lucide-react';
+import { deleteCategory, fetchAdminCategories, saveCategory, updateCategory } from '../../api/adminApi';
 import { useToast } from '../../components/Toast';
-
-const inputCls = 'rounded-lg border border-slate-300 px-3 py-2 text-sm outline-none focus:border-emerald-500';
+import PageHeader from '../../components/ui/PageHeader';
+import Badge from '../../components/ui/Badge';
+import Button from '../../components/ui/Button';
+import Card from '../../components/ui/Card';
+import Field from '../../components/ui/Field';
+import { Checkbox, FileInput, Input } from '../../components/ui/Input';
+import Pagination from '../../components/ui/Pagination';
+import EmptyState from '../../components/ui/EmptyState';
+import { Table, TableShell, TBody, TD, TH, THead, TR } from '../../components/ui/Table';
+import { TableSkeleton } from '../../components/ui/Skeleton';
+import { useConfirm } from '../../components/ui/Confirm';
+import { imageFallback } from '../../utils/image';
 
 export default function AdminCategories() {
   const toast = useToast();
   const queryClient = useQueryClient();
+  const confirm = useConfirm();
   const [pageNo, setPageNo] = useState(0);
   const [newName, setNewName] = useState('');
   const [newFile, setNewFile] = useState<File | null>(null);
@@ -79,8 +86,14 @@ export default function AdminCategories() {
     }
   };
 
-  const remove = async (id: number) => {
-    if (!window.confirm('Delete this category permanently?')) return;
+  const remove = async (id: number, name: string) => {
+    const ok = await confirm({
+      title: 'Delete this category?',
+      message: `“${name}” will be removed permanently.`,
+      confirmLabel: 'Delete',
+    });
+    if (!ok) return;
+
     setBusy(true);
     try {
       await deleteCategory(id);
@@ -94,126 +107,130 @@ export default function AdminCategories() {
   };
 
   return (
-    <div className="space-y-5">
-      <h1 className="text-xl font-bold text-slate-900">Categories</h1>
+    <div>
+      <PageHeader
+        title="Categories"
+        description="The genre tiles shoppers browse on the storefront."
+        icon={<FolderTree className="h-5 w-5" />}
+        crumbs={[{ label: 'Admin', to: '/admin' }, { label: 'Categories' }]}
+      />
 
-      <form onSubmit={add} className="flex flex-wrap items-center gap-3 rounded-xl border border-slate-200 bg-white p-4 shadow-sm">
-        <input
-          value={newName}
-          onChange={(e) => setNewName(e.target.value)}
-          placeholder="New category name…"
-          required
-          className={`${inputCls} min-w-[220px]`}
-        />
-        <input
-          type="file"
-          accept="image/*"
-          onChange={(e) => setNewFile(e.target.files?.[0] ?? null)}
-          className="text-sm text-slate-500 file:mr-3 file:rounded-lg file:border-0 file:bg-emerald-50 file:px-3 file:py-2 file:text-sm file:font-medium file:text-emerald-700"
-        />
-        <button disabled={busy} className="rounded-lg bg-emerald-600 px-4 py-2 text-sm font-medium text-white hover:bg-emerald-500 disabled:opacity-50">
+      <Card as="form" onSubmit={add} className="mb-5 flex flex-wrap items-end gap-3 p-4 sm:p-5">
+        <Field label="Category name" htmlFor="newCategory" required className="min-w-[200px] flex-1">
+          <Input
+            id="newCategory"
+            value={newName}
+            onChange={(e) => setNewName(e.target.value)}
+            placeholder="e.g. Seinen"
+            required
+          />
+        </Field>
+        <Field label="Artwork" htmlFor="newCategoryImage" className="min-w-[200px] flex-1" hint="optional">
+          <FileInput id="newCategoryImage" onChange={(e) => setNewFile(e.target.files?.[0] ?? null)} />
+        </Field>
+        <Button type="submit" variant="gradient" loading={busy}>
+          <Plus className="h-4 w-4" />
           Add category
-        </button>
-      </form>
+        </Button>
+      </Card>
 
       {page.isLoading ? (
-        <p className="py-12 text-center text-slate-500">Loading…</p>
+        <TableSkeleton />
       ) : !page.data || page.data.content.length === 0 ? (
-        <p className="rounded-xl bg-white p-10 text-center text-slate-500">No categories.</p>
+        <EmptyState
+          icon={<FolderTree className="h-7 w-7" />}
+          title="No categories yet"
+          description="Add a genre above and it will appear on the storefront immediately."
+        />
       ) : (
-        <div className="overflow-x-auto rounded-xl border border-slate-200 bg-white shadow-sm">
-          <table className="w-full min-w-[680px] text-left text-sm">
-            <thead className="bg-slate-50 text-xs uppercase tracking-wide text-slate-500">
+        <TableShell>
+          <Table minWidth={680}>
+            <THead>
               <tr>
-                <th className="px-4 py-3">Image</th>
-                <th className="px-4 py-3">Name</th>
-                <th className="px-4 py-3">Status</th>
-                <th className="px-4 py-3">Actions</th>
+                <TH>Image</TH>
+                <TH>Name</TH>
+                <TH>Status</TH>
+                <TH className="text-right">Actions</TH>
               </tr>
-            </thead>
-            <tbody className="divide-y divide-slate-100">
+            </THead>
+            <TBody>
               {page.data.content.map((c) =>
                 editingId === c.id ? (
-                  <tr key={c.id} className="bg-emerald-50/40">
-                    <td className="px-4 py-3">
-                      <input type="file" accept="image/*" onChange={(e) => setEditFile(e.target.files?.[0] ?? null)} className="text-sm" />
-                    </td>
-                    <td className="px-4 py-3">
-                      <input value={editName} onChange={(e) => setEditName(e.target.value)} className={inputCls} />
-                    </td>
-                    <td className="px-4 py-3">
-                      <label className="flex items-center gap-2 text-slate-700">
-                        <input type="checkbox" checked={editActive} onChange={(e) => setEditActive(e.target.checked)} className="h-4 w-4 accent-emerald-600" />
+                  <TR key={c.id} className="bg-sakura-500/[0.06]">
+                    <TD>
+                      <FileInput onChange={(e) => setEditFile(e.target.files?.[0] ?? null)} />
+                    </TD>
+                    <TD>
+                      <Input value={editName} onChange={(e) => setEditName(e.target.value)} aria-label="Category name" />
+                    </TD>
+                    <TD>
+                      <label className="flex items-center gap-2 text-sm text-mist-200">
+                        <Checkbox checked={editActive} onChange={(e) => setEditActive(e.target.checked)} />
                         Active
                       </label>
-                    </td>
-                    <td className="px-4 py-3">
-                      <div className="flex gap-3">
-                        <button onClick={() => void saveEdit(c.id)} disabled={busy} className="font-medium text-emerald-600 hover:underline disabled:opacity-40">
+                    </TD>
+                    <TD>
+                      <div className="flex justify-end gap-2">
+                        <Button variant="primary" size="sm" onClick={() => void saveEdit(c.id)} disabled={busy}>
+                          <Save className="h-3.5 w-3.5" />
                           Save
-                        </button>
-                        <button onClick={() => setEditingId(null)} className="text-slate-500 hover:underline">
+                        </Button>
+                        <Button variant="ghost" size="sm" onClick={() => setEditingId(null)}>
+                          <X className="h-3.5 w-3.5" />
                           Cancel
-                        </button>
+                        </Button>
                       </div>
-                    </td>
-                  </tr>
+                    </TD>
+                  </TR>
                 ) : (
-                  <tr key={c.id}>
-                    <td className="px-4 py-3">
+                  <TR key={c.id}>
+                    <TD>
                       <img
                         src={c.imageName}
                         alt=""
-                        className="h-10 w-10 rounded object-cover"
                         referrerPolicy="no-referrer"
-                        onError={(e) => {
-                          e.currentTarget.onerror = null;
-                          e.currentTarget.src =
-                            "https://br-wispy-block-a5yj4c8a.storage.c-1.us-east-2.aws.neon.tech/media-storage/defaults/default-image.png";
-                        }}
+                        onError={imageFallback()}
+                        className="h-11 w-11 rounded-lg border border-ink-600/60 object-cover"
                       />
-                    </td>
-                    <td className="px-4 py-3 font-medium text-slate-800">{c.name}</td>
-                    <td className="px-4 py-3">
-                      <span className={`rounded-full px-2.5 py-0.5 text-xs font-semibold ${c.isActive === 0 ? 'bg-red-100 text-red-600' : 'bg-emerald-100 text-emerald-700'}`}>
+                    </TD>
+                    <TD className="font-semibold text-mist-50">{c.name}</TD>
+                    <TD>
+                      <Badge tone={c.isActive === 0 ? 'crimson' : 'mint'} dot>
                         {c.isActive === 0 ? 'Inactive' : 'Active'}
-                      </span>
-                    </td>
-                    <td className="px-4 py-3">
-                      <div className="flex items-center gap-3">
-                        <button
-                          onClick={() => startEdit(c.id, c.name, c.isActive)}
-                          className="font-medium text-emerald-600 hover:underline"
-                        >
+                      </Badge>
+                    </TD>
+                    <TD>
+                      <div className="flex justify-end gap-2">
+                        <Button variant="ghost" size="sm" onClick={() => startEdit(c.id, c.name, c.isActive)}>
+                          <Pencil className="h-3.5 w-3.5" />
                           Edit
-                        </button>
-                        <button
-                          onClick={() => void remove(c.id)}
+                        </Button>
+                        <Button
+                          variant="danger"
+                          size="sm"
+                          onClick={() => void remove(c.id, c.name)}
                           disabled={busy}
-                          className="font-medium text-red-500 hover:text-red-700 disabled:opacity-40"
                         >
+                          <Trash2 className="h-3.5 w-3.5" />
                           Delete
-                        </button>
+                        </Button>
                       </div>
-                    </td>
-                  </tr>
+                    </TD>
+                  </TR>
                 ),
               )}
-            </tbody>
-          </table>
-        </div>
+            </TBody>
+          </Table>
+        </TableShell>
       )}
 
-      {page.data && page.data.totalPages > 1 && (
-        <div className="flex items-center justify-center gap-3 text-sm">
-          <button disabled={page.data.first} onClick={() => setPageNo(pageNo - 1)} className="rounded-lg border border-slate-300 px-3 py-1.5 disabled:opacity-40">
-            ← Prev
-          </button>
-          <span className="text-slate-600">Page {page.data.pageNo + 1} of {page.data.totalPages}</span>
-          <button disabled={page.data.last} onClick={() => setPageNo(pageNo + 1)} className="rounded-lg border border-slate-300 px-3 py-1.5 disabled:opacity-40">
-            Next →
-          </button>
-        </div>
+      {page.data && (
+        <Pagination
+          className="mt-5"
+          pageNo={page.data.pageNo}
+          totalPages={page.data.totalPages}
+          onChange={setPageNo}
+        />
       )}
     </div>
   );
