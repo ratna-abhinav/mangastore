@@ -1,4 +1,4 @@
-import { useState } from 'react';
+import { useRef, useState } from 'react';
 import { keepPreviousData, useQuery, useQueryClient } from '@tanstack/react-query';
 import { FolderTree, Pencil, Plus, Save, Trash2, X } from 'lucide-react';
 import { deleteCategory, fetchAdminCategories, saveCategory, updateCategory } from '../../api/adminApi';
@@ -27,7 +27,14 @@ export default function AdminCategories() {
   const [editName, setEditName] = useState('');
   const [editActive, setEditActive] = useState(true);
   const [editFile, setEditFile] = useState<File | null>(null);
-  const [busy, setBusy] = useState(false);
+  // Each async action tracks its own target, so editing one row never blocks or
+  // resets another. A single shared `busy` flag used to do both.
+  const [creating, setCreating] = useState(false);
+  const [savingIds, setSavingIds] = useState<number[]>([]);
+  const [deletingId, setDeletingId] = useState<number | null>(null);
+  // Lets a finishing save tell whether the reader has already moved on to a
+  // different row, so it only closes the row it actually owns.
+  const editingIdRef = useRef<number | null>(null);
 
   const page = useQuery({
     queryKey: ['admin-categories', pageNo],
@@ -43,16 +50,23 @@ export default function AdminCategories() {
   };
 
   const startEdit = (id: number, name: string, active?: number) => {
+    editingIdRef.current = id;
     setEditingId(id);
     setEditName(name);
     setEditActive(active !== 0);
     setEditFile(null);
   };
 
+  const cancelEdit = () => {
+    editingIdRef.current = null;
+    setEditingId(null);
+    setEditFile(null);
+  };
+
   const add = async (e: React.FormEvent) => {
     e.preventDefault();
-    if (!newName.trim()) return;
-    setBusy(true);
+    if (!newName.trim() || creating) return;
+    setCreating(true);
     try {
       await saveCategory(newName.trim(), newFile ?? undefined);
       toast('success', 'Category saved successfully');
@@ -67,26 +81,35 @@ export default function AdminCategories() {
         toast('error', 'Failed to save category');
       }
     } finally {
-      setBusy(false);
+      setCreating(false);
     }
   };
 
   const saveEdit = async (id: number) => {
-    if (!editName.trim()) return;
-    setBusy(true);
+    const name = editName.trim();
+    // only block a second submit of *this* row; a different row may save
+    // concurrently
+    if (!name || savingIds.includes(id)) return;
+
+    // snapshot the payload: the reader may start editing another row while
+    // this request is still in flight
+    const payload = { name, isActive: editActive, file: editFile };
+    setSavingIds((ids) => [...ids, id]);
     try {
-      await updateCategory(id, editName.trim(), editActive, editFile ?? undefined);
+      await updateCategory(id, payload.name, payload.isActive, payload.file ?? undefined);
       toast('success', 'Category updated successfully !!');
-      setEditingId(null);
+      // only tear down the row this save owns
+      if (editingIdRef.current === id) cancelEdit();
       refresh();
     } catch {
       toast('error', 'Failed to update category');
     } finally {
-      setBusy(false);
+      setSavingIds((ids) => ids.filter((x) => x !== id));
     }
   };
 
   const remove = async (id: number, name: string) => {
+    if (deletingId !== null) return;
     const ok = await confirm({
       title: 'Delete this category?',
       message: `“${name}” will be removed permanently.`,
@@ -94,7 +117,7 @@ export default function AdminCategories() {
     });
     if (!ok) return;
 
-    setBusy(true);
+    setDeletingId(id);
     try {
       await deleteCategory(id);
       toast('info', 'Category deleted successfully !!');
@@ -102,7 +125,7 @@ export default function AdminCategories() {
     } catch {
       toast('error', 'Category not deleted! Internal server error');
     } finally {
-      setBusy(false);
+      setDeletingId(null);
     }
   };
 
@@ -128,7 +151,7 @@ export default function AdminCategories() {
         <Field label="Artwork" htmlFor="newCategoryImage" className="min-w-[200px] flex-1" hint="optional">
           <FileInput id="newCategoryImage" onChange={(e) => setNewFile(e.target.files?.[0] ?? null)} />
         </Field>
-        <Button type="submit" variant="gradient" loading={busy}>
+        <Button type="submit" variant="gradient" loading={creating} disabled={creating}>
           <Plus className="h-4 w-4" />
           Add category
         </Button>
@@ -158,7 +181,17 @@ export default function AdminCategories() {
                 editingId === c.id ? (
                   <TR key={c.id} className="bg-sakura-500/[0.06]">
                     <TD>
-                      <FileInput onChange={(e) => setEditFile(e.target.files?.[0] ?? null)} />
+                      {/* keyed on the chosen file so the native control always
+                          reflects what will actually be uploaded */}
+                      <FileInput
+                        key={editFile ? editFile.name : 'empty'}
+                        onChange={(e) => setEditFile(e.target.files?.[0] ?? null)}
+                      />
+                      {editFile && (
+                        <p className="mt-1.5 max-w-[14rem] truncate text-[11px] text-mint-500" title={editFile.name}>
+                          {editFile.name}
+                        </p>
+                      )}
                     </TD>
                     <TD>
                       <Input value={editName} onChange={(e) => setEditName(e.target.value)} aria-label="Category name" />
@@ -171,11 +204,17 @@ export default function AdminCategories() {
                     </TD>
                     <TD>
                       <div className="flex justify-end gap-2">
-                        <Button variant="primary" size="sm" onClick={() => void saveEdit(c.id)} disabled={busy}>
+                        <Button
+                          variant="primary"
+                          size="sm"
+                          onClick={() => void saveEdit(c.id)}
+                          loading={savingIds.includes(c.id)}
+                          disabled={savingIds.includes(c.id)}
+                        >
                           <Save className="h-3.5 w-3.5" />
                           Save
                         </Button>
-                        <Button variant="ghost" size="sm" onClick={() => setEditingId(null)}>
+                        <Button variant="ghost" size="sm" onClick={cancelEdit} disabled={savingIds.includes(c.id)}>
                           <X className="h-3.5 w-3.5" />
                           Cancel
                         </Button>
@@ -209,7 +248,7 @@ export default function AdminCategories() {
                           variant="danger"
                           size="sm"
                           onClick={() => void remove(c.id, c.name)}
-                          disabled={busy}
+                          disabled={deletingId !== null}
                         >
                           <Trash2 className="h-3.5 w-3.5" />
                           Delete
