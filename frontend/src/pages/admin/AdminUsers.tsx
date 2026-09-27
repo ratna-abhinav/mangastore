@@ -1,8 +1,22 @@
 import { useState } from 'react';
 import { useSearchParams } from 'react-router-dom';
 import { useQuery, useQueryClient } from '@tanstack/react-query';
+import { UserCog, Users } from 'lucide-react';
 import { fetchAdminUsers, setUserStatus, type AdminUser } from '../../api/adminApi';
 import { useToast } from '../../components/Toast';
+import PageHeader from '../../components/ui/PageHeader';
+import Badge from '../../components/ui/Badge';
+import Button, { ButtonLink } from '../../components/ui/Button';
+import EmptyState from '../../components/ui/EmptyState';
+import { Table, TableShell, TBody, TD, TH, THead, TR } from '../../components/ui/Table';
+import { TableSkeleton } from '../../components/ui/Skeleton';
+import { imageFallback } from '../../utils/image';
+import { cx } from '../../utils/cx';
+
+const TABS = [
+  { type: 1 as const, label: 'Users', icon: Users },
+  { type: 2 as const, label: 'Admins', icon: UserCog },
+];
 
 export default function AdminUsers() {
   const toast = useToast();
@@ -33,76 +47,113 @@ export default function AdminUsers() {
   };
 
   return (
-    <div className="space-y-5">
-      <div className="flex items-center gap-2">
-        {[1, 2].map((t) => (
+    <div>
+      <PageHeader
+        title="Accounts"
+        description="Enable or disable access for readers and administrators."
+        icon={<Users className="h-5 w-5" />}
+        crumbs={[{ label: 'Admin', to: '/admin' }, { label: 'Accounts' }]}
+        actions={
+          <ButtonLink to="/admin/add-admin" variant="gradient">
+            <UserCog className="h-4 w-4" />
+            Add admin
+          </ButtonLink>
+        }
+      />
+
+      <div role="tablist" aria-label="Account type" className="mb-5 inline-flex gap-1 rounded-full border border-ink-600/60 bg-ink-900/60 p-1">
+        {TABS.map((t) => (
           <button
-            key={t}
-            onClick={() => setSearchParams({ type: String(t) })}
-            className={`rounded-lg px-4 py-2 text-sm font-medium ${
-              type === t ? 'bg-emerald-600 text-white' : 'border border-slate-300 bg-white text-slate-600 hover:border-emerald-400'
-            }`}
+            key={t.type}
+            role="tab"
+            type="button"
+            aria-selected={type === t.type}
+            onClick={() => setSearchParams({ type: String(t.type) })}
+            className={cx(
+              'inline-flex items-center gap-2 rounded-full px-4 py-2 text-sm font-semibold transition',
+              type === t.type
+                ? 'grad-brand text-white'
+                : 'text-mist-400 hover:text-mist-100',
+            )}
           >
-            {t === 1 ? 'Users' : 'Admins'}
+            <t.icon className="h-4 w-4" />
+            {t.label}
           </button>
         ))}
       </div>
 
       {users.isLoading ? (
-        <p className="py-12 text-center text-slate-500">Loading…</p>
+        <TableSkeleton />
       ) : !users.data || users.data.length === 0 ? (
-        <p className="rounded-xl bg-white p-10 text-center text-slate-500">No accounts found.</p>
+        <EmptyState
+          icon={<Users className="h-7 w-7" />}
+          title={type === 1 ? 'No user accounts' : 'No admin accounts'}
+          description={
+            type === 1
+              ? 'Registered readers will show up here.'
+              : 'Add an administrator to give someone dashboard access.'
+          }
+          action={
+            type === 2 ? (
+              <ButtonLink to="/admin/add-admin" variant="gradient">
+                <UserCog className="h-4 w-4" />
+                Add admin
+              </ButtonLink>
+            ) : undefined
+          }
+        />
       ) : (
-        <div className="overflow-x-auto rounded-xl border border-slate-200 bg-white shadow-sm">
-          <table className="w-full min-w-[720px] text-left text-sm">
-            <thead className="bg-slate-50 text-xs uppercase tracking-wide text-slate-500">
+        <TableShell>
+          <Table minWidth={720}>
+            <THead>
               <tr>
-                <th className="px-4 py-3">Account</th>
-                <th className="px-4 py-3">Email</th>
-                <th className="px-4 py-3">Mobile</th>
-                <th className="px-4 py-3">Status</th>
-                <th className="px-4 py-3">Action</th>
+                <TH>Account</TH>
+                <TH>Email</TH>
+                <TH>Mobile</TH>
+                <TH>Status</TH>
+                <TH className="text-right">Action</TH>
               </tr>
-            </thead>
-            <tbody className="divide-y divide-slate-100">
+            </THead>
+            <TBody>
               {users.data.map((u) => (
-                <tr key={u.id} className={pendingId === u.id ? 'opacity-40' : ''}>
-                  <td className="px-4 py-3">
+                <TR key={u.id} muted={pendingId === u.id}>
+                  <TD>
                     <div className="flex items-center gap-3">
                       <img
                         src={u.profileImage ?? undefined}
                         alt=""
-                        className="h-9 w-9 rounded-full border border-slate-200 object-cover"
+                        loading="lazy"
                         referrerPolicy="no-referrer"
+                        onError={imageFallback()}
+                        className="h-9 w-9 shrink-0 rounded-full border border-ink-600 object-cover"
                       />
-                      <span className="font-medium text-slate-800">{u.name}</span>
+                      <span className="font-semibold text-mist-50">{u.name}</span>
                     </div>
-                  </td>
-                  <td className="px-4 py-3 text-slate-600">{u.email}</td>
-                  <td className="px-4 py-3 text-slate-600">{u.mobileNumber}</td>
-                  <td className="px-4 py-3">
-                    <span className={`rounded-full px-2.5 py-0.5 text-xs font-semibold ${u.isEnable === 1 ? 'bg-emerald-100 text-emerald-700' : 'bg-red-100 text-red-600'}`}>
+                  </TD>
+                  <TD className="text-mist-400">{u.email}</TD>
+                  <TD className="text-mist-400">{u.mobileNumber}</TD>
+                  <TD>
+                    <Badge tone={u.isEnable === 1 ? 'mint' : 'crimson'} dot>
                       {u.isEnable === 1 ? 'Enabled' : 'Disabled'}
-                    </span>
-                  </td>
-                  <td className="px-4 py-3">
-                    <button
-                      onClick={() => void toggle(u)}
-                      disabled={pendingId !== null}
-                      className={`rounded-lg px-3 py-1.5 text-xs font-semibold ${
-                        u.isEnable === 1
-                          ? 'border border-red-200 text-red-500 hover:bg-red-50'
-                          : 'border border-emerald-200 text-emerald-600 hover:bg-emerald-50'
-                      } disabled:opacity-40`}
-                    >
-                      {pendingId === u.id ? 'Updating…' : u.isEnable === 1 ? 'Disable' : 'Enable'}
-                    </button>
-                  </td>
-                </tr>
+                    </Badge>
+                  </TD>
+                  <TD>
+                    <div className="flex justify-end">
+                      <Button
+                        variant={u.isEnable === 1 ? 'danger' : 'primary'}
+                        size="sm"
+                        onClick={() => void toggle(u)}
+                        disabled={pendingId !== null}
+                      >
+                        {pendingId === u.id ? 'Updating…' : u.isEnable === 1 ? 'Disable' : 'Enable'}
+                      </Button>
+                    </div>
+                  </TD>
+                </TR>
               ))}
-            </tbody>
-          </table>
-        </div>
+            </TBody>
+          </Table>
+        </TableShell>
       )}
     </div>
   );

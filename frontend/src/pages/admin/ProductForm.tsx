@@ -1,12 +1,17 @@
 import { useEffect, useState } from 'react';
 import { Link, useNavigate, useParams } from 'react-router-dom';
 import { useQuery } from '@tanstack/react-query';
+import { PackagePlus, Save } from 'lucide-react';
 import { createProduct, fetchAllCategories, updateProduct } from '../../api/adminApi';
 import { fetchProduct } from '../../api/catalog';
 import { useToast } from '../../components/Toast';
-
-const inputCls = 'w-full rounded-lg border border-slate-300 px-3 py-2 text-sm outline-none focus:border-emerald-500';
-const labelCls = 'mb-1 block text-sm font-medium text-slate-700';
+import PageHeader from '../../components/ui/PageHeader';
+import Alert from '../../components/ui/Alert';
+import Button, { ButtonLink } from '../../components/ui/Button';
+import Card from '../../components/ui/Card';
+import Field from '../../components/ui/Field';
+import { Checkbox, FileInput, Input, Select, Textarea } from '../../components/ui/Input';
+import { LoadingBlock } from '../../components/ui/Skeleton';
 
 interface FormState {
   title: string;
@@ -95,78 +100,89 @@ export default function ProductForm() {
     }
   };
 
-  if (editing && existing.isLoading) return <p className="py-16 text-center text-slate-500">Loading product…</p>;
-  if (editing && (!existing.data)) return (
-    <div className="py-16 text-center">
-      <p className="text-slate-600">Product not found.</p>
-      <Link to="/admin/products" className="text-emerald-600 hover:underline">← Back</Link>
-    </div>
-  );
+  if (editing && existing.isLoading) return <LoadingBlock label="Loading product…" />;
 
-  return (
-    <form onSubmit={submit} className="mx-auto max-w-3xl space-y-4 rounded-2xl border border-slate-200 bg-white p-8 shadow-sm">
-      <h1 className="text-xl font-bold text-slate-900">{editing ? `Edit product #${id}` : 'Add product'}</h1>
-
-      {error && <div className="rounded-lg bg-red-50 px-4 py-3 text-sm text-red-600">{error}</div>}
-
-      <div>
-        <label className={labelCls} htmlFor="title">Title *</label>
-        <input id="title" required value={form.title} onChange={set('title')} className={inputCls} />
-      </div>
-      <div>
-        <label className={labelCls} htmlFor="description">Description *</label>
-        <textarea id="description" required rows={4} value={form.description} onChange={set('description')} className={inputCls} />
-      </div>
-      <div className="grid grid-cols-1 gap-4 sm:grid-cols-2">
-        <div>
-          <label className={labelCls} htmlFor="category">Category *</label>
-          <select id="category" required value={form.category} onChange={set('category')} className={inputCls}>
-            <option value="">— select —</option>
-            {(categories.data ?? []).map((c) => (
-              <option key={c.id} value={c.name}>{c.name}</option>
-            ))}
-          </select>
-        </div>
-        <div>
-          <label className={labelCls} htmlFor="price">Price (₹) *</label>
-          <input id="price" type="number" min="0" step="0.01" required value={form.price} onChange={set('price')} className={inputCls} />
-        </div>
-        <div>
-          <label className={labelCls} htmlFor="stock">Stock *</label>
-          <input id="stock" type="number" min="0" required value={form.stock} onChange={set('stock')} className={inputCls} />
-        </div>
-        <div>
-          <label className={labelCls} htmlFor="discount">Discount %</label>
-          <input id="discount" type="number" min="0" max="100" value={form.discount} onChange={set('discount')} className={inputCls} />
-        </div>
-        <div>
-          <label className={labelCls} htmlFor="img">Image</label>
-          <input
-            id="img"
-            type="file"
-            accept="image/*"
-            onChange={(e) => setFile(e.target.files?.[0] ?? null)}
-            className="w-full text-sm text-slate-500 file:mr-3 file:rounded-lg file:border-0 file:bg-emerald-50 file:px-3 file:py-2 file:text-sm file:font-medium file:text-emerald-700"
-          />
-        </div>
-        <label className="flex items-center gap-2 self-end pb-2 text-sm text-slate-700">
-          <input type="checkbox" checked={form.isActive} onChange={set('isActive')} className="h-4 w-4 accent-emerald-600" />
-          Active (visible in store)
-        </label>
-      </div>
-
-      <div className="flex gap-3 pt-2">
-        <button
-          type="submit"
-          disabled={busy}
-          className="rounded-lg bg-emerald-600 px-6 py-2.5 text-sm font-semibold text-white hover:bg-emerald-500 disabled:opacity-50"
-        >
-          {busy ? 'Saving…' : editing ? 'Update product' : 'Save product'}
-        </button>
-        <Link to="/admin/products" className="rounded-lg border border-slate-300 px-6 py-2.5 text-sm font-medium text-slate-600 hover:bg-slate-50">
-          Cancel
+  if (editing && !existing.data) {
+    return (
+      <div className="py-16 text-center">
+        <p className="text-mist-400">Product not found.</p>
+        <Link to="/admin/products" className="mt-3 inline-block text-sm font-semibold text-sakura-300 hover:underline">
+          ← Back to products
         </Link>
       </div>
-    </form>
+    );
+  }
+
+  return (
+    <div className="mx-auto max-w-3xl">
+      <PageHeader
+        title={editing ? `Edit product #${id}` : 'Add product'}
+        description={editing ? 'Update the listing details below.' : 'Create a new listing for the storefront.'}
+        icon={<PackagePlus className="h-5 w-5" />}
+        crumbs={[
+          { label: 'Admin', to: '/admin' },
+          { label: 'Products', to: '/admin/products' },
+          { label: editing ? `Edit #${id}` : 'New' },
+        ]}
+      />
+
+      <Card as="form" onSubmit={submit} className="space-y-5 p-6 sm:p-8">
+        {error && <Alert tone="error">{error}</Alert>}
+
+        <Field label="Title" htmlFor="title" required>
+          <Input id="title" required value={form.title} onChange={set('title')} />
+        </Field>
+
+        <Field label="Description" htmlFor="description" required>
+          <Textarea id="description" required rows={5} value={form.description} onChange={set('description')} />
+        </Field>
+
+        <div className="grid grid-cols-1 gap-4 sm:grid-cols-2">
+          <Field label="Category" htmlFor="category" required>
+            <Select id="category" required value={form.category} onChange={set('category')}>
+              <option value="">— select —</option>
+              {(categories.data ?? []).map((c) => (
+                <option key={c.id} value={c.name}>
+                  {c.name}
+                </option>
+              ))}
+            </Select>
+          </Field>
+          <Field label="Price (₹)" htmlFor="price" required>
+            <Input id="price" type="number" min="0" step="0.01" required value={form.price} onChange={set('price')} />
+          </Field>
+          <Field label="Stock" htmlFor="stock" required>
+            <Input id="stock" type="number" min="0" required value={form.stock} onChange={set('stock')} />
+          </Field>
+          <Field label="Discount" htmlFor="discount" hint="%">
+            <Input
+              id="discount"
+              type="number"
+              min="0"
+              max="100"
+              value={form.discount}
+              onChange={set('discount')}
+            />
+          </Field>
+          <Field label="Cover image" htmlFor="img" hint="optional">
+            <FileInput id="img" onChange={(e) => setFile(e.target.files?.[0] ?? null)} />
+          </Field>
+          <label className="flex items-end gap-2.5 pb-2.5 text-sm font-medium text-mist-200">
+            <Checkbox checked={form.isActive} onChange={set('isActive')} />
+            Active (visible in store)
+          </label>
+        </div>
+
+        <div className="flex flex-wrap gap-3 pt-1">
+          <Button type="submit" variant="gradient" loading={busy}>
+            <Save className="h-4 w-4" />
+            {busy ? 'Saving…' : editing ? 'Update product' : 'Save product'}
+          </Button>
+          <ButtonLink to="/admin/products" variant="outline">
+            Cancel
+          </ButtonLink>
+        </div>
+      </Card>
+    </div>
   );
 }

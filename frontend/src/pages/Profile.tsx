@@ -1,11 +1,15 @@
 import { useEffect, useRef, useState } from 'react';
 import { keepPreviousData, useQuery, useQueryClient } from '@tanstack/react-query';
+import { KeyRound, ShieldCheck, UserCog } from 'lucide-react';
 import { changePassword, fetchProfile, updateProfile } from '../api/userArea';
 import { useAuth } from '../context/AuthContext';
 import { useToast } from '../components/Toast';
-
-const inputCls = 'w-full rounded-lg border border-slate-300 px-3 py-2 text-sm outline-none focus:border-emerald-500';
-const labelCls = 'mb-1 block text-sm font-medium text-slate-700';
+import Badge from '../components/ui/Badge';
+import Button from '../components/ui/Button';
+import Card, { CardHeader } from '../components/ui/Card';
+import Field from '../components/ui/Field';
+import { FileInput, Input } from '../components/ui/Input';
+import { LoadingBlock } from '../components/ui/Skeleton';
 
 export default function Profile() {
   const toast = useToast();
@@ -78,99 +82,107 @@ export default function Profile() {
     }
   };
 
-  if (profile.isLoading || !profile.data) return <p className="py-16 text-center text-slate-500">Loading profile…</p>;
+  if (profile.isLoading || !profile.data) return <LoadingBlock label="Loading profile…" />;
 
   const p = profile.data;
 
   return (
-    <div className="mx-auto max-w-3xl space-y-6">
-      <div className="flex items-center gap-4 rounded-2xl border border-slate-200 bg-white p-6 shadow-sm">
-        <img
-          src={p.profileImage ?? undefined}
-          alt=""
-          className="h-16 w-16 rounded-full border-2 border-emerald-500 object-cover"
-          referrerPolicy="no-referrer"
+    <div className="mx-auto max-w-4xl space-y-6">
+      {/* ------------------------------------------------------------ identity */}
+      <Card className="flex flex-wrap items-center gap-5 p-6">
+        <div className="relative shrink-0">
+          <img
+            src={p.profileImage ?? undefined}
+            alt=""
+            referrerPolicy="no-referrer"
+            className="h-20 w-20 rounded-2xl object-cover ring-2 ring-sakura-500/50"
+          />
+          <span
+            aria-hidden
+            className="animate-spin-slow absolute -inset-1.5 rounded-[1.4rem] border border-dashed border-neon-violet-400/30"
+          />
+        </div>
+        <div className="min-w-0 flex-1">
+          <h1 className="font-display text-2xl font-extrabold text-mist-50">{p.name}</h1>
+          <p className="truncate text-sm text-mist-400">{p.email}</p>
+          <Badge tone="violet" className="mt-2.5">
+            Reader account
+          </Badge>
+        </div>
+      </Card>
+
+      {/* -------------------------------------------------------------- details */}
+      <Card as="form" onSubmit={saveProfile} className="p-6 sm:p-8">
+        <CardHeader
+          title="Profile details"
+          subtitle="Used to pre-fill your checkout"
+          icon={<UserCog className="h-4.5 w-4.5" />}
         />
-        <div>
-          <h1 className="text-xl font-bold text-slate-900">{p.name}</h1>
-          <p className="text-sm text-slate-500">{p.email}</p>
-        </div>
-      </div>
 
-      <form onSubmit={saveProfile} className="rounded-xl border border-slate-200 bg-white p-6 shadow-sm">
-        <h2 className="mb-4 text-lg font-bold text-slate-800">Profile details</h2>
         <div className="grid grid-cols-1 gap-4 sm:grid-cols-2">
-          <div>
-            <label className={labelCls} htmlFor="name">Full name</label>
-            <input id="name" value={form.name} onChange={set('name')} className={inputCls} />
-          </div>
-          <div>
-            <label className={labelCls} htmlFor="mobileNumber">Mobile number</label>
-            <input id="mobileNumber" value={form.mobileNumber} onChange={set('mobileNumber')} className={inputCls} />
-          </div>
-          <div className="sm:col-span-2">
-            <label className={labelCls} htmlFor="address">Address</label>
-            <input id="address" value={form.address} onChange={set('address')} className={inputCls} />
-          </div>
-          <div>
-            <label className={labelCls} htmlFor="city">City</label>
-            <input id="city" value={form.city} onChange={set('city')} className={inputCls} />
-          </div>
-          <div>
-            <label className={labelCls} htmlFor="state">State</label>
-            <input id="state" value={form.state} onChange={set('state')} className={inputCls} />
-          </div>
-          <div>
-            <label className={labelCls} htmlFor="pincode">Pincode</label>
-            <input id="pincode" value={form.pincode} onChange={set('pincode')} className={inputCls} />
-          </div>
-          <div>
-            <label className={labelCls} htmlFor="newImg">Replace picture</label>
-            <input
-              id="newImg"
-              ref={fileRef}
-              type="file"
-              accept="image/*"
-              className="w-full text-sm text-slate-500 file:mr-3 file:rounded-lg file:border-0 file:bg-emerald-50 file:px-3 file:py-2 file:text-sm file:font-medium file:text-emerald-700"
-            />
-          </div>
+          <Field label="Full name" htmlFor="name">
+            <Input id="name" value={form.name} onChange={set('name')} />
+          </Field>
+          <Field label="Mobile number" htmlFor="mobileNumber">
+            <Input id="mobileNumber" value={form.mobileNumber} onChange={set('mobileNumber')} />
+          </Field>
+          <Field label="Address" htmlFor="address" className="sm:col-span-2">
+            <Input id="address" value={form.address} onChange={set('address')} />
+          </Field>
+          <Field label="City" htmlFor="city">
+            <Input id="city" value={form.city} onChange={set('city')} />
+          </Field>
+          <Field label="State" htmlFor="state">
+            <Input id="state" value={form.state} onChange={set('state')} />
+          </Field>
+          <Field label="Pincode" htmlFor="pincode">
+            <Input id="pincode" value={form.pincode} onChange={set('pincode')} />
+          </Field>
+          <Field label="Replace picture" htmlFor="newImg" hint="PNG or JPG">
+            <FileInput id="newImg" ref={fileRef} />
+          </Field>
         </div>
-        <button type="submit" disabled={savingProfile} className="mt-5 rounded-lg bg-emerald-600 px-6 py-2.5 text-sm font-semibold text-white hover:bg-emerald-500 disabled:opacity-50">
+
+        <Button type="submit" variant="gradient" loading={savingProfile} className="mt-6">
           {savingProfile ? 'Saving…' : 'Save changes'}
-        </button>
-      </form>
+        </Button>
+      </Card>
 
-      <form onSubmit={savePassword} className="rounded-xl border border-slate-200 bg-white p-6 shadow-sm">
-        <h2 className="mb-4 text-lg font-bold text-slate-800">Change password</h2>
+      {/* ------------------------------------------------------------- password */}
+      <Card as="form" onSubmit={savePassword} className="p-6 sm:p-8">
+        <CardHeader
+          title="Change password"
+          subtitle="At least 6 characters"
+          icon={<KeyRound className="h-4.5 w-4.5" />}
+        />
+
         <div className="grid grid-cols-1 gap-4 sm:grid-cols-2">
-          <div>
-            <label className={labelCls} htmlFor="currentPassword">Current password</label>
-            <input
+          <Field label="Current password" htmlFor="currentPassword">
+            <Input
               id="currentPassword"
               type="password"
               required
               value={pw.currentPassword}
               onChange={(e) => setPw((v) => ({ ...v, currentPassword: e.target.value }))}
-              className={inputCls}
             />
-          </div>
-          <div>
-            <label className={labelCls} htmlFor="newPassword">New password</label>
-            <input
+          </Field>
+          <Field label="New password" htmlFor="newPassword">
+            <Input
               id="newPassword"
               type="password"
               required
               minLength={6}
               value={pw.newPassword}
               onChange={(e) => setPw((v) => ({ ...v, newPassword: e.target.value }))}
-              className={inputCls}
             />
-          </div>
+          </Field>
         </div>
-        <button type="submit" disabled={savingPw} className="mt-5 rounded-lg bg-slate-800 px-6 py-2.5 text-sm font-semibold text-white hover:bg-slate-700 disabled:opacity-50">
+
+        <Button type="submit" variant="outline" loading={savingPw} className="mt-6">
+          <ShieldCheck className="h-4 w-4" />
           {savingPw ? 'Updating…' : 'Update password'}
-        </button>
-      </form>
+        </Button>
+      </Card>
     </div>
   );
 }

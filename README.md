@@ -16,6 +16,7 @@
 - 👤 **Accounts** — register (with avatar), session login, forgot/reset password via email
 - 🛠 **Admin dashboard** — stats overview, product/category CRUD with image uploads, order status management, user enable/disable, add administrators
 - 🖼 Images hosted on Neon Object Storage (S3-compatible); UI served as a React SPA from inside the Spring Boot jar
+- 🌗 Light & dark theme with a header toggle — the choice persists and defaults to your OS preference
 
 ## 🧱 Architecture
 
@@ -29,6 +30,15 @@ Thymeleaf          ❌ removed — replaced entirely by the React SPA
 ```
 
 The frontend build output is packaged *into* the Spring Boot jar, so production runs as one service: pages come from the SPA, data from `/api/**`, auth from session cookies.
+
+### UI design system
+
+There is no component library — the UI is hand-rolled on Tailwind v4's CSS-first config. All colour, type and motion decisions live in one place, [`frontend/src/index.css`](frontend/src/index.css):
+
+- **`@theme` tokens** — semantic ramps (`ink-*` surfaces, `mist-*` text, `sakura`/`violet`/`cyan` accents, plus success/warn/danger). Components only ever reference these names, never raw hex values.
+- **Light & dark** — the `[data-theme='light']` block re-points the *same* token names at light values, so switching themes never requires touching a component. `src/context/ThemeContext.tsx` owns the toggle; an inline script in `index.html` resolves the theme before first paint to avoid a flash.
+- **Reusable primitives** — `src/components/ui/` holds `Button`, `Input`, `Field`, `Card`, `Badge`, `Table`, `Pagination`, `Skeleton`, `EmptyState`, `Alert`, `AuthShell` and a themed `Confirm` dialog that replaces `window.confirm`.
+- **Motion** — a small set of keyframes (staggered `rise-in`, `pop-in`, `aurora`, marquee) that all collapse gracefully under `prefers-reduced-motion`.
 
 ## 🚢 Deployment
 

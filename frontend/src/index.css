@@ -1,12 +1,206 @@
 @import "tailwindcss";
 
-:root {
-  font-family: system-ui, Avenir, Helvetica, Arial, sans-serif;
-  color-scheme: light dark;
+/* ==========================================================================
+   MangaStore — "Anime Ink" design system
+   --------------------------------------------------------------------------
+   Two themes share one set of utility names. Components always reference the
+   semantic ramps (bg-ink-850, text-mist-200, border-ink-600); the *values*
+   behind those names are swapped by the [data-theme='light'] block, so
+   switching themes never requires touching a component.
+
+     ink-950 → page canvas      mist-50 → headings
+     ink-900 → elevated panels  mist-200 → body copy
+     ink-850 → cards            mist-400 → captions
+     ink-800 → inputs / hover   mist-500 → placeholders
+     ink-600 → borders
+   ========================================================================== */
+
+@theme {
+  /* ---- type ---- */
+  --font-display: "Bricolage Grotesque", "Noto Sans JP", ui-sans-serif, system-ui, sans-serif;
+  --font-sans: "Inter", "Noto Sans JP", ui-sans-serif, system-ui, -apple-system, "Segoe UI", sans-serif;
+
+  /* ---- ink: the canvas ramp (dark values; light theme overrides below) ---- */
+  --color-ink-950: #06040d;
+  --color-ink-900: #100c22;
+  --color-ink-850: #16112c;
+  --color-ink-800: #1c1636;
+  --color-ink-750: #231c42;
+  --color-ink-700: #2b2358;
+  --color-ink-600: #3a2f6d;
+
+  /* ---- sakura: primary brand ---- */
+  --color-sakura-200: #fbd4ea;
+  --color-sakura-300: #f9a8d4;
+  --color-sakura-400: #f472b6;
+  --color-sakura-500: #ec4899;
+  --color-sakura-600: #d9267f;
+
+  /* ---- neon violet: secondary ---- */
+  --color-neon-violet-300: #c4b5fd;
+  --color-neon-violet-400: #a78bfa;
+  --color-neon-violet-500: #8b5cf6;
+  --color-neon-violet-600: #7c3aed;
+
+  /* ---- neon cyan: tertiary ---- */
+  --color-neon-cyan-300: #67e8f9;
+  --color-neon-cyan-400: #22d3ee;
+  --color-neon-cyan-500: #06b6d4;
+
+  /* ---- mist: text ramp ---- */
+  --color-mist-50: #f6f4ff;
+  --color-mist-100: #ece8ff;
+  --color-mist-200: #d9d3f7;
+  --color-mist-300: #bdb5e4;
+  --color-mist-400: #9a92c9;
+  --color-mist-500: #7a72a8;
+
+  /* ---- semantic status ---- */
+  --color-mint-300: #6ee7b7;
+  --color-mint-400: #34d399;
+  --color-mint-500: #10b981;
+  --color-flare-300: #fcd34d;
+  --color-flare-400: #fbbf24;
+  --color-crimson-300: #fda4af;
+  --color-crimson-400: #fb7185;
+  --color-crimson-500: #f43f5e;
+
+  /* ---- scrim: sits on top of artwork, stays dark in BOTH themes ---- */
+  --color-scrim: #06040d;
+
+  /* ---- the big 漫画 watermark behind heroes ---- */
+  --color-watermark: #4a3d86;
+
+  /* ---- ambient halo blobs behind heroes (alpha baked in) ---- */
+  --color-halo-1: rgb(236 72 153 / 0.18);
+  --color-halo-2: rgb(139 92 246 / 0.15);
+  --color-halo-3: rgb(6 182 212 / 0.1);
+
+  /* ---- signature gradient stops ---- */
+  --grad-1: #f472b6;
+  --grad-2: #a78bfa;
+  --grad-3: #22d3ee;
+
+  /* ---- effect tints that must re-tint per theme ---- */
+  --fx-screentone: rgb(246 244 255 / 0.14);
+  --fx-skeleton-sheen: rgb(246 244 255 / 0.07);
+  --fx-edge-light: rgb(246 244 255 / 0.22);
+  --fx-shine: rgb(255 255 255 / 0.32);
+  --fx-card-hover-border: rgb(244 114 182 / 0.45);
+  --fx-card-hover-shadow: rgb(236 72 153 / 0.5);
+  --shadow-glow-violet:
+    0 0 0 1px rgb(167 139 250 / 0.28), 0 18px 50px -22px rgb(139 92 246 / 0.5);
+  --shadow-glow-ink:
+    0 24px 70px -30px rgb(0 0 0 / 0.9), 0 0 0 1px rgb(154 146 201 / 0.12);
+  --shadow-float-pink: 0 12px 40px -16px rgb(236 72 153 / 0.55);
+  --shadow-cta: 0 10px 30px -14px rgb(236 72 153 / 0.85);
+  --shadow-cta-hover: 0 16px 44px -14px rgb(236 72 153 / 0.95);
+  --shadow-card-hover: 0 28px 60px -32px rgb(236 72 153 / 0.7);
+  --shadow-logo: 0 6px 18px -8px rgb(236 72 153 / 0.9);
+  --shadow-sticky: 0 18px 50px -32px rgb(0 0 0 / 0.95);
+  --shadow-overlay: 0 28px 70px -24px rgb(0 0 0 / 0.9);
+  --shadow-artwork: 0 24px 56px rgb(0 0 0 / 0.75);
+  --shadow-focus-ring: 0 0 0 4px rgb(236 72 153 / 0.14);
+
+  /* ---- motion ---- */
+  --animate-rise-in: rise-in 0.7s cubic-bezier(0.22, 1, 0.36, 1) both;
+  --animate-fade-up: fade-up 0.6s ease-out both;
+  --animate-pop-in: pop-in 0.45s cubic-bezier(0.34, 1.56, 0.64, 1) both;
+  --animate-aurora: aurora 26s ease-in-out infinite;
+  --animate-aurora-slow: aurora 40s ease-in-out infinite reverse;
+  --animate-marquee: marquee 38s linear infinite;
+  --animate-badge-pop: badge-pop 0.4s cubic-bezier(0.34, 1.56, 0.64, 1);
+  --animate-spin-slow: spin 14s linear infinite;
 }
 
-html {
-  scroll-behavior: smooth;
+/* ==========================================================================
+   Light theme — inverts the ramps, deepens the accents for contrast,
+   and dials every glow back so the page stays easy on the eyes.
+   ========================================================================== */
+
+[data-theme='light'] {
+  color-scheme: light;
+
+  /* canvas → card: light lavender to clean white */
+  --color-ink-950: #faf8ff;
+  --color-ink-900: #f4f1fb;
+  --color-ink-850: #ffffff;
+  --color-ink-800: #f2eef9;
+  --color-ink-750: #eae5f6;
+  --color-ink-700: #ded7ee;
+  --color-ink-600: #cdc4e4;
+
+  /* headings → placeholders: near-black to soft grey */
+  --color-mist-50: #17122b;
+  --color-mist-100: #241d3d;
+  --color-mist-200: #3d3460;
+  --color-mist-300: #5b5280;
+  --color-mist-400: #736b91;
+  --color-mist-500: #8f88a6;
+
+  /* accents deepen so they stay legible on white */
+  --color-sakura-200: #9d1b5f;
+  --color-sakura-300: #b91c70;
+  --color-sakura-400: #db2777;
+  --color-sakura-500: #db2777;
+  --color-sakura-600: #be185d;
+
+  --color-neon-violet-300: #6d28d9;
+  --color-neon-violet-400: #7c3aed;
+  --color-neon-violet-500: #7c3aed;
+  --color-neon-violet-600: #6d28d9;
+
+  --color-neon-cyan-300: #0e7490;
+  --color-neon-cyan-400: #0891b2;
+  --color-neon-cyan-500: #0891b2;
+
+  --color-mint-300: #047857;
+  --color-mint-400: #059669;
+  --color-mint-500: #059669;
+  --color-flare-300: #a16207;
+  --color-flare-400: #d97706;
+  --color-crimson-300: #be123c;
+  --color-crimson-400: #e11d48;
+  --color-crimson-500: #e11d48;
+
+  /* halos become barely-there pastel washes */
+  --color-halo-1: rgb(219 39 119 / 0.07);
+  --color-halo-2: rgb(124 58 237 / 0.06);
+  --color-halo-3: rgb(8 145 178 / 0.05);
+  --color-watermark: #e0d9f0;
+
+  --grad-1: #db2777;
+  --grad-2: #7c3aed;
+  --grad-3: #0891b2;
+
+  --fx-screentone: rgb(87 70 140 / 0.1);
+  --fx-skeleton-sheen: rgb(87 70 140 / 0.06);
+  --fx-edge-light: rgb(87 70 140 / 0.14);
+  --fx-shine: rgb(255 255 255 / 0.45);
+  --fx-card-hover-border: rgb(219 39 119 / 0.4);
+  --fx-card-hover-shadow: rgb(219 39 119 / 0.18);
+  --shadow-glow-violet: 0 0 0 1px rgb(124 58 237 / 0.16), 0 14px 36px -22px rgb(124 58 237 / 0.35);
+  --shadow-glow-ink: 0 18px 50px -26px rgb(23 18 43 / 0.35), 0 0 0 1px rgb(23 18 43 / 0.07);
+  --shadow-float-pink: 0 10px 30px -16px rgb(219 39 119 / 0.35);
+  --shadow-cta: 0 8px 24px -12px rgb(219 39 119 / 0.4);
+  --shadow-cta-hover: 0 12px 30px -12px rgb(219 39 119 / 0.5);
+  --shadow-card-hover: 0 24px 50px -30px rgb(219 39 119 / 0.45);
+  --shadow-logo: 0 4px 14px -6px rgb(219 39 119 / 0.5);
+  --shadow-sticky: 0 10px 30px -20px rgb(23 18 43 / 0.25);
+  --shadow-overlay: 0 22px 60px -26px rgb(23 18 43 / 0.3);
+  --shadow-artwork: 0 18px 40px rgb(23 18 43 / 0.25);
+  --shadow-focus-ring: 0 0 0 4px rgb(219 39 119 / 0.12);
+}
+
+@keyframes rise-in {
+  from {
+    opacity: 0;
+    transform: translateY(22px);
+  }
+  to {
+    opacity: 1;
+    transform: none;
+  }
 }
 
 @keyframes fade-up {
@@ -20,15 +214,260 @@ html {
   }
 }
 
-.animate-fade-up {
-  animation: fade-up 0.6s ease-out both;
+@keyframes pop-in {
+  from {
+    opacity: 0;
+    transform: scale(0.94) translateY(10px);
+  }
+  to {
+    opacity: 1;
+    transform: none;
+  }
 }
 
-.scrollbar-hide::-webkit-scrollbar {
-  display: none;
+@keyframes aurora {
+  0%,
+  100% {
+    transform: translate3d(0, 0, 0) scale(1);
+  }
+  33% {
+    transform: translate3d(4%, -6%, 0) scale(1.12);
+  }
+  66% {
+    transform: translate3d(-5%, 4%, 0) scale(0.94);
+  }
 }
 
-.scrollbar-hide {
+@keyframes marquee {
+  from {
+    transform: translateX(0);
+  }
+  to {
+    transform: translateX(-50%);
+  }
+}
+
+@keyframes badge-pop {
+  0% {
+    transform: scale(0.4);
+    opacity: 0;
+  }
+  60% {
+    transform: scale(1.25);
+    opacity: 1;
+  }
+  100% {
+    transform: scale(1);
+    opacity: 1;
+  }
+}
+
+@keyframes shimmer {
+  100% {
+    transform: translateX(100%);
+  }
+}
+
+/* ==========================================================================
+   Base
+   ========================================================================== */
+
+@layer base {
+  :root {
+    color-scheme: dark;
+  }
+
+  html {
+    scroll-behavior: smooth;
+    -webkit-tap-highlight-color: transparent;
+  }
+
+  body {
+    background-color: var(--color-ink-950);
+    color: var(--color-mist-200);
+    font-family: var(--font-sans);
+    -webkit-font-smoothing: antialiased;
+    -moz-osx-font-smoothing: grayscale;
+  }
+
+  h1,
+  h2,
+  h3,
+  h4 {
+    font-family: var(--font-display);
+    letter-spacing: -0.022em;
+  }
+
+  /* the whole app was missing a visible focus ring */
+  :focus-visible {
+    outline: 2px solid var(--color-sakura-400);
+    outline-offset: 2px;
+    border-radius: 6px;
+  }
+
+  ::selection {
+    background: var(--color-sakura-500);
+    color: #fff;
+  }
+
+  /* native form controls have to follow the canvas too */
+  select option {
+    background-color: var(--color-ink-800);
+    color: var(--color-mist-100);
+  }
+
+  /* the spinners are near-black by default, so only invert them on dark */
+  [data-theme='dark'] input[type='number']::-webkit-inner-spin-button,
+  [data-theme='dark'] input[type='date']::-webkit-calendar-picker-indicator {
+    filter: invert(0.8);
+  }
+
+  ::-webkit-scrollbar {
+    width: 10px;
+    height: 10px;
+  }
+  ::-webkit-scrollbar-track {
+    background: var(--color-ink-950);
+  }
+  ::-webkit-scrollbar-thumb {
+    background: var(--color-ink-600);
+    border-radius: 999px;
+    border: 2px solid var(--color-ink-950);
+  }
+  ::-webkit-scrollbar-thumb:hover {
+    background: var(--color-ink-700);
+  }
+}
+
+/* ==========================================================================
+   Utilities
+   ========================================================================== */
+
+/* the signature brand gradient, used for headings, rules and CTA text */
+@utility text-gradient {
+  background-image: linear-gradient(100deg, var(--grad-1), var(--grad-2) 45%, var(--grad-3));
+  background-clip: text;
+  -webkit-background-clip: text;
+  color: transparent;
+}
+
+/* the same gradient as a surface fill, for primary buttons */
+@utility grad-brand {
+  background-image: linear-gradient(100deg, var(--grad-1), var(--grad-2) 55%, var(--grad-3));
+}
+
+/* frosted panel used by the navbar, drawers and sticky asides */
+@utility glass {
+  background-color: color-mix(in oklab, var(--color-ink-900) 82%, transparent);
+  backdrop-filter: blur(18px) saturate(140%);
+  -webkit-backdrop-filter: blur(18px) saturate(140%);
+}
+
+/* film-grain overlay, keeps flat panels from looking sterile */
+@utility noise {
+  background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='140' height='140'%3E%3Cfilter id='n'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.85' numOctaves='3' stitchTiles='stitch'/%3E%3C/filter%3E%3Crect width='140' height='140' filter='url(%23n)'/%3E%3C/svg%3E");
+  background-repeat: repeat;
+}
+
+/* dotted manga screentone, used behind heroes and the 404 */
+@utility screentone {
+  background-image: radial-gradient(circle at 1px 1px, var(--fx-screentone) 1px, transparent 0);
+  background-size: 22px 22px;
+}
+
+@utility glow-violet {
+  box-shadow: var(--shadow-glow-violet);
+}
+
+@utility glow-ink {
+  box-shadow: var(--shadow-glow-ink);
+}
+
+/* a specular sweep across primary buttons on hover */
+@utility shine {
+  position: relative;
+  overflow: hidden;
+  &::after {
+    content: "";
+    position: absolute;
+    inset: 0;
+    transform: translateX(-130%);
+    background-image: linear-gradient(100deg, transparent, var(--fx-shine), transparent);
+    transition: transform 0.75s cubic-bezier(0.22, 1, 0.36, 1);
+    pointer-events: none;
+  }
+  &:hover::after {
+    transform: translateX(130%);
+  }
+}
+
+/* top-edge highlight that makes flat panels read as raised */
+@utility edge-light {
+  position: relative;
+  &::before {
+    content: "";
+    position: absolute;
+    inset-inline: 0;
+    top: 0;
+    height: 1px;
+    background-image: linear-gradient(90deg, transparent, var(--fx-edge-light), transparent);
+    pointer-events: none;
+  }
+}
+
+@utility card-hover {
+  transition:
+    transform 0.35s cubic-bezier(0.22, 1, 0.36, 1),
+    box-shadow 0.35s ease,
+    border-color 0.35s ease;
+  &:hover {
+    transform: translateY(-4px);
+    border-color: var(--fx-card-hover-border);
+    box-shadow: 0 26px 60px -30px var(--fx-card-hover-shadow);
+  }
+}
+
+@utility scrollbar-hide {
   -ms-overflow-style: none;
   scrollbar-width: none;
+  &::-webkit-scrollbar {
+    display: none;
+  }
+}
+
+/* Skeletons sweep a highlight instead of pulsing the whole block. */
+@utility skeleton {
+  position: relative;
+  overflow: hidden;
+  background-color: var(--color-ink-800);
+  &::after {
+    content: "";
+    position: absolute;
+    inset: 0;
+    transform: translateX(-100%);
+    background-image: linear-gradient(90deg, transparent, var(--fx-skeleton-sheen), transparent);
+    animation: shimmer 1.6s infinite;
+  }
+}
+
+@utility divider-glow {
+  height: 1px;
+  border: 0;
+  background-image: linear-gradient(90deg, transparent, var(--grad-1), var(--grad-3), transparent);
+  opacity: 0.5;
+}
+
+/* ==========================================================================
+   Motion opt-out
+   ========================================================================== */
+
+@media (prefers-reduced-motion: reduce) {
+  *,
+  *::before,
+  *::after {
+    animation-duration: 0.01ms !important;
+    animation-iteration-count: 1 !important;
+    transition-duration: 0.01ms !important;
+    scroll-behavior: auto !important;
+  }
 }
